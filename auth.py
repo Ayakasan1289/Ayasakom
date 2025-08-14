@@ -336,7 +336,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+        "𝗣𝗔𝗥𝗔𝗘𝗟 𝗕𝗢𝗧\n"
         "SEND CARD IN FORMAT CC|MM|YY|CVV\n"
     )
 
@@ -383,6 +383,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 
 
