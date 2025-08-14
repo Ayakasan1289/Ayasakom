@@ -85,8 +85,8 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         data_login = {
             'learndash-login-form': login_token,
             'pmpro_login_form_used': '1',
-            'log': 'parael10@gmail.com',   # Ganti akun login sesuai kamu
-            'pwd': 'parael',               # Ganti password sesuai kamu
+            'log': 'ayasayamaguchi12@signinid.com',   # Ganti akun login sesuai kamu
+            'pwd': 'Ayasa1209',               # Ganti password sesuai kamu
             'wp-submit': 'Log In',
             'redirect_to': '',
         }
@@ -387,4 +387,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
