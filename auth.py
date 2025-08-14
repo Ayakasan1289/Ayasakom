@@ -337,25 +337,21 @@ TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
-        "Please send your card info in the format:\n"
-        "CC|MM|YYYY|CVV\n"
-        "Example:\n"
-        "4693080257546198|12|29|590\n"
-        "4693080257546198|12|2029|590"
+        "SEND CARD IN FORMAT CC|MM|YY|CVV\n"
     )
 
 async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = update.message.text.strip()
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
-    msg = await update.message.reply_text("STARTING CARD CHECKS... PLEASE WAIT.", parse_mode='HTML')
+    msg = await update.message.reply_text("PROCESSING YOUR CARD, PLEASE WAIT...", parse_mode='HTML')
 
     try:
         for line in lines:
             parts = line.split("|")
             if len(parts) != 4:
                 await update.message.reply_text(
-                    f"WRONG FORMAT:\n<code>{line}</code>\nUse format: CC|MM|YYYY|CVV",
+                    f"WRONG FORMAT:\n<code>{line}</code>\nUSE FORMAT: CC|MM|YYYY|CVV",
                     parse_mode='HTML'
                 )
                 continue
@@ -387,5 +383,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 
