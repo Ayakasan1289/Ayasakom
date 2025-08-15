@@ -48,11 +48,11 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             return json.dumps({"error": {"message": "Invalid expiry date"}})
 
         if expiry_month < 1 or expiry_month > 12:
-            return json.dumps({"error": {"message": "Expiration Month Invalid ❌"}})
+            return json.dumps({"error": {"message": "Expiration Month Invalid"}})
         if expiry_year < current_year:
-            return json.dumps({"error": {"message": "Expiration Year Invalid ❌"}})
+            return json.dumps({"error": {"message": "Expiration Year Invalid"}})
         if expiry_year == current_year and expiry_month < current_month:
-            return json.dumps({"error": {"message": "Expiration Month Invalid ❌"}})
+            return json.dumps({"error": {"message": "Expiration Month Invalid"}})
 
         headers = {
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -392,3 +392,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
