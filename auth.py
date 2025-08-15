@@ -187,35 +187,35 @@ async def charge_resp(result):
             '{"status":"SUCCESS",' in result or
             '"status":"success"' in result
         ):
-            response = "Payment method successfully added âœ…"
+            response = "Payment method successfully added ✅"
         elif "Thank you for your donation" in result:
-            response = "Payment successful! ðŸŽ‰"
+            response = "Payment successful! 🎉"
         elif "insufficient funds" in result or "card has insufficient funds." in result:
-            response = "INSUFFICIENT FUNDS âœ…"
+            response = "INSUFFICIENT FUNDS ✅"
         elif "Your card has insufficient funds." in result:
-            response = "INSUFFICIENT FUNDS âœ…"
+            response = "INSUFFICIENT FUNDS ✅"
         elif (
             "incorrect_cvc" in result
             or "security code is incorrect." in result
             or "Your card's security code is incorrect." in result
         ):
-            response = "CVV INCORRECT âŽ"
+            response = "CVV INCORRECT ❎"
         elif "transaction_not_allowed" in result:
-            response = "TRANSACTION NOT ALLOWED âŽ"
+            response = "TRANSACTION NOT ALLOWED ❎"
         elif '"cvc_check": "pass"' in result:
-            response = "CVV MATCH âœ…"
+            response = "CVV MATCH ✅"
         elif "requires_action" in result:
-            response = "VERIFICATION ðŸš«"
+            response = "VERIFICATION 🚫"
         elif (
             "three_d_secure_redirect" in result
             or "card_error_authentication_required" in result
             or "wcpay-confirm-pi:" in result
         ):
-            response = "3DS Required âŽ"
+            response = "3DS Required ❎"
         elif "stripe_3ds2_fingerprint" in result:
-            response = "3DS Required âŽ"
+            response = "3DS Required ❎"
         elif "Your card does not support this type of purchase." in result:
-            response = "CARD DOESN'T SUPPORT THIS PURCHASE âŽ"
+            response = "CARD DOESN'T SUPPORT THIS PURCHASE ❎"
         elif (
             "generic_decline" in result
             or "You have exceeded the maximum number of declines on this card in the last 24 hour period."
@@ -224,74 +224,74 @@ async def charge_resp(result):
             or "This transaction cannot be processed." in result
             or '"status":400,' in result
         ):
-            response = "GENERIC DECLINED âŒ"
+            response = "GENERIC DECLINED ❌"
         elif "do not honor" in result:
-            response = "DO NOT HONOR âŒ"
+            response = "DO NOT HONOR ❌"
         elif "Suspicious activity detected. Try again in a few minutes." in result:
-            response = "TRY AGAIN IN A FEW MINUTES âŒ"
+            response = "TRY AGAIN IN A FEW MINUTES ❌"
         elif "fraudulent" in result:
-            response = "FRAUDULENT âŒ "
+            response = "FRAUDULENT ❌ "
         elif "setup_intent_authentication_failure" in result:
-            response = "SETUP_INTENT_AUTHENTICATION_FAILURE âŒ"
+            response = "SETUP_INTENT_AUTHENTICATION_FAILURE ❌"
         elif "invalid cvc" in result:
-            response = "INVALID CVV âŒ"
+            response = "INVALID CVV ❌"
         elif "stolen card" in result:
-            response = "STOLEN CARD âŒ"
+            response = "STOLEN CARD ❌"
         elif "lost_card" in result:
-            response = "LOST CARD âŒ"
+            response = "LOST CARD ❌"
         elif "pickup_card" in result:
-            response = "PICKUP CARD âŒ"
+            response = "PICKUP CARD ❌"
         elif "incorrect_number" in result:
-            response = "INCORRECT CARD NUMBER âŒ"
+            response = "INCORRECT CARD NUMBER ❌"
         elif "Your card has expired." in result or "expired_card" in result:
-            response = "EXPIRED CARD âŒ"
+            response = "EXPIRED CARD ❌"
         elif "intent_confirmation_challenge" in result:
-            response = "CAPTCHA âŒ"
+            response = "CAPTCHA ❌"
         elif "Your card number is incorrect." in result:
-            response = "INCORRECT CARD NUMBER âŒ"
+            response = "INCORRECT CARD NUMBER ❌"
         elif (
             "Your card's expiration year is invalid." in result
             or "Your card's expiration year is invalid." in result
         ):
-            response = "EXPIRATION YEAR INVALID âŒ"
+            response = "EXPIRATION YEAR INVALID ❌"
         elif (
             "Your card's expiration month is invalid." in result
             or "invalid_expiry_month" in result
         ):
-            response = "EXPIRATION MONTH INVALID âŒ"
+            response = "EXPIRATION MONTH INVALID ❌"
         elif "card is not supported." in result:
-            response = "CARD NOT SUPPORTED âŒ"
+            response = "CARD NOT SUPPORTED ❌"
         elif "invalid account" in result:
-            response = "DEAD CARD âŒ"
+            response = "DEAD CARD ❌"
         elif (
             "Invalid API Key provided" in result
             or "testmode_charges_only" in result
             or "api_key_expired" in result
             or "Your account cannot currently make live charges." in result
         ):
-            response = "stripe error contact support@stripe.com for more details âŒ"
+            response = "stripe error contact support@stripe.com for more details ❌"
         elif "Your card was declined." in result or "card was declined" in result:
-            response = "CARD DECLINED âŒ"
+            response = "CARD DECLINED ❌"
         elif "card number is incorrect." in result:
-            response = "CARD NUMBER INCORRECT âŒ"
+            response = "CARD NUMBER INCORRECT ❌"
         elif "Sorry, we are unable to process your payment at this time. Please retry later." in result:
-            response = "Sorry, we are unable to process your payment at this time. Please retry later â³"
+            response = "Sorry, we are unable to process your payment at this time. Please retry later ⏳"
         elif "card number is incomplete." in result:
-            response = "CARD NUMBER INCOMPLETE âŒ"
+            response = "CARD NUMBER INCOMPLETE ❌"
         elif "The order total is too high for this payment method" in result:
-            response = "ORDER TO HIGH FOR THIS CARD âŒ"
+            response = "ORDER TO HIGH FOR THIS CARD ❌"
         elif "The order total is too low for this payment method" in result:
-            response = "ORDER TO LOW FOR THIS CARD âŒ"
+            response = "ORDER TO LOW FOR THIS CARD ❌"
         elif "Please Update Bearer Token" in result:
-            response = "Token Expired Admin Has Been Notified âŒ"
+            response = "Token Expired Admin Has Been Notified ❌"
         else:
-            response = result + "âŒ"
+            response = result + "❌"
             with open("result_logs.txt", "a", encoding="utf-8") as f:
                 f.write(f"{result}\n")
 
         return response
     except Exception as e:
-        return f"{str(e)} âŒ"
+        return f"{str(e)} ❌"
 
 # Combines create_payment_method + charge_resp + measure time
 async def multi_checking(fullz: str) -> str:
@@ -312,17 +312,17 @@ async def multi_checking(fullz: str) -> str:
 
     if error_message:
         output = (
-            f"ð—–ð—®ð—¿ð—±: Â» <code>{fullz}</code>\n"
-            f"ð—šð—®ð˜ð—²ð˜„ð—®ð˜†: Â» ð—¦ð—§ð—¥ð—œð—£ð—˜ ð—”ð—¨ð—§ð—›\n"
-            f"ð—¥ð—²ð˜€ð—½ð—¼ð—»ð˜€ð—²: Â» {error_message} âŒ\n"
-            f"ð—§ð—¶ð—ºð—²: Â» {elapsed}s"
+            f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
+            f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+            f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {error_message} ❌\n"
+            f"𝗧𝗶𝗺𝗲: » {elapsed}s"
         )
     else:
         output = (
-            f"ð—–ð—®ð—¿ð—±: Â» <code>{fullz}</code>\n"
-            f"ð—šð—®ð˜ð—²ð˜„ð—®ð˜†: Â» ð—¦ð—§ð—¥ð—œð—£ð—˜ ð—”ð—¨ð—§ð—›\n"
-            f"ð—¥ð—²ð˜€ð—½ð—¼ð—»ð˜€ð—²: Â» {response}\n"
-            f"ð—§ð—¶ð—ºð—²: Â» {elapsed}s"
+            f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
+            f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+            f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {response}\n"
+            f"𝗧𝗶𝗺𝗲: » {elapsed}s"
         )
         if any(key in response for key in ["Payment method successfully added", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
             with open("auth.txt", "a", encoding="utf-8") as file:
@@ -336,7 +336,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "ð—£ð—”ð—¥ð—”ð—˜ð—Ÿ ð—•ð—¢ð—§\n"
+        "𝗣𝗔𝗥𝗔𝗘𝗟 𝗕𝗢𝗧\n"
         "SEND CARD IN FORMAT CC|MM|YY|CVV\n"
     )
 
@@ -383,4 +383,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
