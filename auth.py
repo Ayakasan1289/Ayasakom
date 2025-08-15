@@ -3,6 +3,7 @@ import re
 import time
 import json
 import asyncio
+import logging
 from html import unescape
 
 import httpx
@@ -13,6 +14,11 @@ from telegram.ext import (
     MessageHandler,
     filters,
     ContextTypes,
+)
+
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.INFO
 )
 
 # Helper function to extract substring between start and end
@@ -178,6 +184,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         return response.text
 
     except Exception as e:
+        logging.error(f"create_payment_method error: {str(e)}")
         return f"Exception: {str(e)}"
 
 # Function maps API response text to friendly message
@@ -291,6 +298,7 @@ async def charge_resp(result):
 
         return response
     except Exception as e:
+        logging.error(f"charge_resp error: {str(e)}")
         return f"{str(e)} ❌"
 
 # Combines create_payment_method + charge_resp + measure time
@@ -341,12 +349,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    text = update.message.text.strip()
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-
-    msg = await update.message.reply_text("PROCESSING YOUR CARD, PLEASE WAIT...", parse_mode='HTML')
-
     try:
+        text = update.message.text.strip()
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+        await update.message.reply_text("PROCESSING YOUR CARD, PLEASE WAIT...", parse_mode='HTML')
+
+        tasks = []
         for line in lines:
             parts = line.split("|")
             if len(parts) != 4:
@@ -362,14 +371,20 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
 
-            # Optional sleep if you want to add delay (can be removed for speed)
-            await asyncio.sleep(3)
+            # Buat task async checking
+            tasks.append(multi_checking(cc_formatted))
 
-            result = await multi_checking(cc_formatted)
-            await update.message.reply_text(result, parse_mode='HTML')
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        await msg.delete()
+        for result in results:
+            if isinstance(result, Exception):
+                logging.error(f"Error in task: {str(result)}")
+                await update.message.reply_text(f"Error: {str(result)}")
+            else:
+                await update.message.reply_text(result, parse_mode='HTML')
+
     except Exception as e:
+        logging.error(f"Error in handle_cc_message: {str(e)}")
         await update.message.reply_text(f"ERROR: {str(e)}")
 
 def main() -> None:
@@ -378,12 +393,8 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_cc_message))
 
-    print("PARAEL CHECKER BOT RUNNING...")
+    logging.info("PARAEL CHECKER BOT RUNNING...")
     application.run_polling()
 
 if __name__ == "__main__":
     main()
-
-
-
-
