@@ -335,10 +335,10 @@ async def multi_checking(fullz: str) -> str:
         pass
 
     bin_text = (
-        f"𝗧𝗬𝗣𝗘: » {bin_info['type']}\n"
-        f"𝗕𝗥𝗔𝗡𝗗: » {bin_info['brand']}\n"
-        f"𝗜𝗦𝗦𝗨𝗘𝗥: » {bin_info['issuer']}\n"
-        f"𝗖𝗢𝗨𝗡𝗧𝗥𝗬: » {bin_info['country']}\n"
+        f"𝗧𝘆𝗽𝗲: » {bin_info['type']}\n"
+        f"𝗕𝗿𝗮𝗻𝗱: » {bin_info['brand']}\n"
+        f"𝗜𝘀𝘀𝘂𝗲𝗿: » {bin_info['issuer']}\n"
+        f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆: » {bin_info['country']}\n"
     )
 
     if error_message:
@@ -423,3 +423,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
