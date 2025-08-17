@@ -14,7 +14,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-ADMIN_CHAT_ID = 7519839885  # ID TELEGRAM
+ADMIN_CHAT_ID = 7519839885  # Ganti dengan chat ID Telegram kamu
 
 def gets(s: str, start: str, end: str) -> str | None:
     try:
@@ -80,8 +80,8 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         data_login = {
             'learndash-login-form': login_token,
             'pmpro_login_form_used': '1',
-            'log': 'jasonmurphy12099@gmail.com',  # Ganti sesuai username kamu
-            'pwd': 'Jason1209',  # Ganti sesuai password kamu
+            'log': 'ayasayamaguchi12@signinid.com',  # Ganti sesuai username kamu
+            'pwd': 'Ayasa1209',  # Ganti sesuai password kamu
             'wp-submit': 'Log In',
             'redirect_to': '',
         }
@@ -329,10 +329,10 @@ async def multi_checking(fullz: str) -> str:
         pass
 
     bin_text = (
-        f"𝗧𝘆𝗽𝗲: » {bin_info['type']}\n"
-        f"𝗕𝗿𝗮𝗻𝗱: » {bin_info['brand']}\n"
-        f"𝗜𝘀𝘀𝘂𝗲𝗿: » {bin_info['issuer']}\n"
-        f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆: » {bin_info['country']}\n"
+        f"𝗧𝗬𝗣𝗘: » {bin_info['type']}\n"
+        f"𝗕𝗥𝗔𝗡𝗗: » {bin_info['brand']}\n"
+        f"𝗕𝗔𝗡𝗞: » {bin_info['issuer']}\n"
+        f"𝗖𝗢𝗨𝗡𝗧𝗥𝗬: » {bin_info['country']}\n"
     )
 
     if error_message:
@@ -392,7 +392,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
 
-            await asyncio.sleep(5)
+            await asyncio.sleep(3)
 
             result = await multi_checking(cc_formatted)
             await update.message.reply_text(result, parse_mode='HTML')
@@ -412,6 +412,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-
