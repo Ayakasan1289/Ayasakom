@@ -392,7 +392,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
 
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
 
             result = await multi_checking(cc_formatted)
             await update.message.reply_text(result, parse_mode='HTML')
@@ -412,4 +412,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
