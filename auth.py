@@ -1,7 +1,7 @@
 import os
+import re
 import time
 import json
-import random
 import asyncio
 from html import unescape
 
@@ -15,8 +15,10 @@ from telegram.ext import (
     ContextTypes,
 )
 
-ADMIN_CHAT_ID = 7519839885  # ID TELEGRAM
+# Ganti dengan chat ID kamu sendiri
+ADMIN_CHAT_ID = 7519839885
 
+# Helper function to extract substring between start and end
 def gets(s: str, start: str, end: str) -> str | None:
     try:
         start_index = s.index(start) + len(start)
@@ -25,10 +27,12 @@ def gets(s: str, start: str, end: str) -> str | None:
     except ValueError:
         return None
 
+# Create payment method with expiry validation
 async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     try:
         cc, mes, ano, cvv = fullz.split("|")
 
+        # Validate expiration date
         mes = mes.zfill(2)
         if len(ano) == 4:
             ano = ano[-2:]
@@ -233,28 +237,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     except Exception as e:
         return f"Exception: {str(e)}"
 
-# Pakai API bin lookup dari drlabapis.onrender.com
-async def get_bin_info(bin_number: str) -> dict:
-    url = f"https://drlabapis.onrender.com/api/bin?bin={bin_number}"
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(url)
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get("status") == "ok":
-                    return {
-                        "type": data.get("type"),
-                        "brand": data.get("tier"),
-                        "issuer": data.get("issuer"),
-                        "country": data.get("country"),
-                    }
-                else:
-                    return {"type": "N/A", "brand": "N/A", "issuer": "N/A", "country": "N/A"}
-            else:
-                return {"type": "N/A", "brand": "N/A", "issuer": "N/A", "country": "N/A"}
-    except Exception:
-        return {"type": "N/A", "brand": "N/A", "issuer": "N/A", "country": "N/A"}
-
+# Function maps API response text to friendly message
 async def charge_resp(result):
     try:
         if (
@@ -367,6 +350,7 @@ async def charge_resp(result):
     except Exception as e:
         return f"{str(e)} ❌"
 
+# Combines create_payment_method + charge_resp + measure time
 async def multi_checking(fullz: str) -> str:
     start = time.time()
     async with httpx.AsyncClient(timeout=40) as session:
@@ -374,9 +358,6 @@ async def multi_checking(fullz: str) -> str:
         response = await charge_resp(result)
 
     elapsed = round(time.time() - start, 2)
-
-    bin_number = fullz.split("|")[0][:6]
-    bin_info = await get_bin_info(bin_number)
 
     error_message = ""
     try:
@@ -386,28 +367,19 @@ async def multi_checking(fullz: str) -> str:
     except Exception:
         pass
 
-    bin_text = (
-        f"𝗧𝘆𝗽𝗲: » {bin_info['type']}\n"
-        f"𝗕𝗿𝗮𝗻𝗱: » {bin_info['brand']}\n"
-        f"𝗜𝘀𝘀𝘂𝗲𝗿: » {bin_info['issuer']}\n"
-        f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆: » {bin_info['country']}\n"
-    )
-
     if error_message:
         output = (
             f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
             f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
             f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {error_message} ❌\n"
-            f"𝗧𝗶𝗺𝗲: » {elapsed}s\n"
-            f"{bin_text}"
+            f"𝗧𝗶𝗺𝗲: » {elapsed}s"
         )
     else:
         output = (
             f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
             f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
             f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {response}\n"
-            f"𝗧𝗶𝗺𝗲: » {elapsed}s\n"
-            f"{bin_text}"
+            f"𝗧𝗶𝗺𝗲: » {elapsed}s"
         )
         if any(key in response for key in ["Payment method successfully added", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
             with open("auth.txt", "a", encoding="utf-8") as file:
@@ -415,14 +387,17 @@ async def multi_checking(fullz: str) -> str:
 
     return output
 
+# Telegram bot handlers
+
+TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_chat.id != ADMIN_CHAT_ID:
         await update.message.reply_text("YOU ARE NOT AUTHORIZED TO USE THIS BOT ❌")
         return
     await update.message.reply_text(
-        "𝗣𝗔𝗥𝗔𝗘𝗟 𝗕𝗢𝗧\n"
-        "SEND CARD IN FORMAT\n"
-        "CC|MM|YY|CVV\n"
+        "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+        "SEND CARD IN FORMAT » CC|MM|YY|CVV\n"
     )
 
 async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -451,7 +426,8 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
 
-            await asyncio.sleep(12)
+            # Optional sleep if you want to add delay (can be removed for speed)
+            await asyncio.sleep(3)
 
             result = await multi_checking(cc_formatted)
             await update.message.reply_text(result, parse_mode='HTML')
@@ -461,7 +437,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await update.message.reply_text(f"ERROR: {str(e)}")
 
 def main() -> None:
-    application = ApplicationBuilder().token(os.getenv("TOKEN")).build()
+    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_cc_message))
@@ -471,4 +447,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
