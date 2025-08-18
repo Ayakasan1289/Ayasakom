@@ -417,7 +417,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             save_admin_chat_ids(admin_chat_ids)
             await update.message.reply_text(
                 f"𝗪𝗘𝗟𝗖𝗢𝗠𝗘 𝗢𝗪𝗡𝗘𝗥 🤗\n"
-                "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
                 "SEND CARD IN FORMAT » CC|MM|YY|CVV\n"
             )
         else:
