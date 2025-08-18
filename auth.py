@@ -89,7 +89,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
 
         login = gets(response.text, '"learndash-login-form" value="', '" />')
         if login is None:
-            return "Login token not found", '', '', ''
+            return "Login token not found ", '', '', ''
 
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -178,7 +178,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
 
         nonce = gets(response.text, '"add_card_nonce":"', '"')
         if nonce is None:
-            return "Nonce token not found", '', '', ''
+            return "Nonce token not found ", '', '', ''
 
         headers = {
             'accept': 'application/json',
@@ -569,4 +569,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
