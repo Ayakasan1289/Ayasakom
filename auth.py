@@ -233,7 +233,7 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
             error_message = pm_json['error'].get('message', '')
 
         if not expiry_valid and error_message is None:
-            error_message = "Expiration date invalid."
+            error_message = "Expiration date invalid. "
 
         if error_message:
             return error_message, country, brand, card_type
@@ -569,3 +569,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
