@@ -60,14 +60,14 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             expiry_month = int(mes)
             expiry_year = int(ano)
         except ValueError:
-            return json.dumps({"error": {"message": "INVALID EXPIRY DATE"}})
+            return json.dumps({"error": {"message": "Invalid Expiry Date"}})
 
         if expiry_month < 1 or expiry_month > 12:
-            return json.dumps({"error": {"message": "EXPIRATION MONTH INVALID"}})
+            return json.dumps({"error": {"message": "Expiration month invalid"}})
         if expiry_year < current_year:
-            return json.dumps({"error": {"message": "EXPIRATION YEAR INVALID"}})
+            return json.dumps({"error": {"message": "Expiration year invalid"}})
         if expiry_year == current_year and expiry_month < current_month:
-            return json.dumps({"error": {"message": "EXPIRATION MONTH INVALID"}})
+            return json.dumps({"error": {"message": "Expiration month invalid"}})
 
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -260,7 +260,7 @@ async def charge_resp(result):
             '{"status":"SUCCESS",' in result
             or '"status":"success"' in result
         ):
-            response = "PAYMENT METHOD SUCCESSFULLY ADDED ✅"
+            response = "Payment method successfully added ✅"
         elif "Thank you for your donation" in result:
             response = "PAYMENT SUCCESSFUL! 🎉"
         elif "insufficient funds" in result or "card has insufficient funds." in result:
@@ -397,7 +397,7 @@ async def multi_checking(fullz: str) -> str:
             f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {response}\n"
             f"𝗧𝗶𝗺𝗲: » {elapsed}s"
         )
-        if any(key in response for key in ["PAYMENT METHOD SUCCESSFULLY ADDED", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
+        if any(key in response for key in ["Payment method successfully added", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
             with open("auth.txt", "a", encoding="utf-8") as file:
                 file.write(output + "\n")
 
@@ -438,7 +438,7 @@ async def addadmin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global admin_chat_ids
 
     if chat_id != OWNER_ADMIN_ID:
-        await update.message.reply_text("ONLY OWNER ADMIN CAN ADD ANOTHER ADMIN. ❌")
+        await update.message.reply_text("ONLY OWNER ADMIN CAN ADD ANOTHER ADMIN ❌")
         return
 
     if not context.args or len(context.args) != 1:
@@ -465,7 +465,7 @@ async def deladmin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global admin_chat_ids
 
     if chat_id != OWNER_ADMIN_ID:
-        await update.message.reply_text("ONLY OWNER ADMIN CAN REMOVE AN ADMIN. ❌")
+        await update.message.reply_text("ONLY OWNER ADMIN CAN REMOVE AN ADMIN ❌")
         return
 
     if not context.args or len(context.args) != 1:
@@ -483,7 +483,7 @@ async def deladmin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     if remove_admin_id == OWNER_ADMIN_ID:
-        await update.message.reply_text("YOU CANNOT REMOVE YOURSELF AS OWNER ADMIN. ❌")
+        await update.message.reply_text("YOU CANNOT REMOVE YOURSELF AS OWNER ADMIN ❌")
         return
 
     admin_chat_ids.remove(remove_admin_id)
@@ -553,3 +553,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
