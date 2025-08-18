@@ -60,14 +60,13 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
             expiry_month = int(mes)
             expiry_year = int(ano)
         except ValueError:
-            return json.dumps({"error": {"message": "Invalid Expiry Date"}})
-
+            return "Invalid Expiry Date", '', '', ''
         if expiry_month < 1 or expiry_month > 12:
-            return json.dumps({"error": {"message": "Expiration month invalid"}})
+            return "Expiration month invalid", '', '', ''
         if expiry_year < current_year:
-            return json.dumps({"error": {"message": "Expiration year invalid"}})
+            return "Expiration year invalid", '', '', ''
         if expiry_year == current_year and expiry_month < current_month:
-            return json.dumps({"error": {"message": "Expiration month invalid"}})
+            return "Expiration month invalid", '', '', ''
 
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
