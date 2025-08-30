@@ -1,13 +1,14 @@
-FROM python:3.12-slim
+# Gunakan image python slim versi 3.11
+FROM python:3.11-slim
 
+# Set working directory di container
 WORKDIR /app
 
-COPY requirements.txt .
-
-RUN pip install --no-cache-dir -r requirements.txt
-
+# Salin semua file ke container
 COPY . .
 
-RUN mkdir -p downloads outputs
+# Install dependencies dari requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "auth.py"]
+# Jalankan script python utama
+CMD ["python", "app.py"]
