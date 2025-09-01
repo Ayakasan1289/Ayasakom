@@ -235,23 +235,23 @@ class StripeAuth:
             json_resp = json.loads(result)
             if "error" in json_resp:
                 error_message = unescape(json_resp["error"].get("message","")).strip()
-                output = (f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
-                          f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
-                          f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {error_message} ❌\n"
-                          f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆: » {country}\n"
-                          f"𝗕𝗿𝗮𝗻𝗱: » {brand}\n"
-                          f"𝗧𝘆𝗽𝗲: » {card_type}\n"
-                          f"𝗧𝗶𝗺𝗲: » {elapsed}s")
+                output = (f"𝗖𝗮𝗿𝗱 ☞ <code>{fullz}</code>\n"
+                          f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ☞ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+                          f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ☞ {error_message} ❌\n"
+                          f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ☞ {country}\n"
+                          f"𝗕𝗿𝗮𝗻𝗱 ☞ {brand}\n"
+                          f"𝗧𝘆𝗽𝗲 ☞ {card_type}\n"
+                          f"𝗧𝗶𝗺𝗲 ☞ {elapsed}s")
                 return output
         except:
             pass
-        output = (f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
-                  f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
-                  f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {response}\n"
-                  f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆: » {country}\n"
-                  f"𝗕𝗿𝗮𝗻𝗱: » {brand}\n"
-                  f"𝗧𝘆𝗽𝗲: » {card_type}\n"
-                  f"𝗧𝗶𝗺𝗲: » {elapsed}s")
+        output = (f"𝗖𝗮𝗿𝗱 ☞ <code>{fullz}</code>\n"
+                  f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ☞ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+                  f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ☞ {response}\n"
+                  f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ☞ {country}\n"
+                  f"𝗕𝗿𝗮𝗻𝗱 ☞ {brand}\n"
+                  f"𝗧𝘆𝗽𝗲 ☞ {card_type}\n"
+                  f"𝗧𝗶𝗺𝗲 ☞ {elapsed}s")
         if any(k in response for k in ["Approved ✅", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
             with open("auth.txt", "a", encoding="utf-8") as f:
                 f.write(output + "\n")
@@ -262,7 +262,7 @@ class StripeAuth:
         chat_id = update.effective_chat.id
         active_mode_per_chat[chat_id] = 'stripe'
         await update.message.reply_text(
-            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARD IN FORMAT » CC|MM|YY|CVV"
+            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARD IN FORMAT ☞ CC|MM|YY|CVV"
         )
 
     @staticmethod
@@ -584,23 +584,23 @@ class BraintreeAuth:
         if "Payment method successfully added." in error_msg:
             error_msg = ""
         if error_msg:
-            output = (f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
-                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
-                      f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {error_msg} ❌\n"
-                      f"𝗕𝗿𝗮𝗻𝗱: » {brand}\n"
-                      f"𝗕𝗮𝗻𝗸: » {bank}\n"
-                      f"𝗣𝗿𝗲𝗽𝗮𝗶𝗱: » {prepaid}\n"
-                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆: » {country}\n"
-                      f"𝗧𝗶𝗺𝗲: » {elapsed}s")
+            output = (f"𝗖𝗮𝗿𝗱 ☞ <code>{fullz}</code>\n"
+                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ☞ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
+                      f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ☞ {error_msg} ❌\n"
+                      f"𝗕𝗿𝗮𝗻𝗱 ☞ {brand}\n"
+                      f"𝗕𝗮𝗻𝗸 ☞ {bank}\n"
+                      f"𝗣𝗿𝗲𝗽𝗮𝗶𝗱 ☞ {prepaid}\n"
+                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ☞ {country}\n"
+                      f"𝗧𝗶𝗺𝗲 ☞ {elapsed}s")
         else:
-            output = (f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
-                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
-                      f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {response}\n"
-                      f"𝗕𝗿𝗮𝗻𝗱: » {brand}\n"
-                      f"𝗕𝗮𝗻𝗸: » {bank}\n"
-                      f"𝗣𝗿𝗲𝗽𝗮𝗶𝗱: » {prepaid}\n"
-                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆: » {country}\n"
-                      f"𝗧𝗶𝗺𝗲: » {elapsed}s")
+            output = (f"𝗖𝗮𝗿𝗱 ☞ <code>{fullz}</code>\n"
+                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ☞ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
+                      f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ☞ {response}\n"
+                      f"𝗕𝗿𝗮𝗻𝗱 ☞ {brand}\n"
+                      f"𝗕𝗮𝗻𝗸 ☞ {bank}\n"
+                      f"𝗣𝗿𝗲𝗽𝗮𝗶𝗱 ☞ {prepaid}\n"
+                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ☞ {country}\n"
+                      f"𝗧𝗶𝗺𝗲 ☞ {elapsed}s")
             if any(k in response for k in ["Approved", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
                 with open("auth.txt", "a") as f:
                     f.write(output + "\n")
@@ -611,7 +611,7 @@ class BraintreeAuth:
         chat_id = update.effective_chat.id
         active_mode_per_chat[chat_id] = 'braintree'
         await update.message.reply_text(
-            "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARD IN FORMAT » CC|MM|YY|CVV"
+            "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARD IN FORMAT ☞ CC|MM|YY|CVV"
         )
 
     @staticmethod
@@ -715,8 +715,11 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 
 if __name__ == "__main__":
-    import sys
-    application = ApplicationBuilder().token("TOKEN").build()
+    TOKEN = os.getenv("TOKEN")  # Ambil token dari environment variable
+    if not TOKEN:
+        print("TOKEN environment variable not set")
+        exit(1)
+    application = ApplicationBuilder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("sa", StripeAuth.start_stripe))
     application.add_handler(CommandHandler("ba", BraintreeAuth.start_braintree))
