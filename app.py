@@ -240,7 +240,8 @@ class StripeAuth:
                           f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ☞ {error_message} ❌\n"
                           f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ☞ {country}\n"
                           f"𝗕𝗿𝗮𝗻𝗱 ☞ {brand}\n"
-                          f"𝗧𝘆𝗽𝗲 ☞ {card_type}")
+                          f"𝗧𝘆𝗽𝗲 ☞ {card_type}\n"
+                          f"𝗧𝗶𝗺𝗲 ☞ {elapsed}s")
                 return output
         except:
             pass
@@ -249,7 +250,8 @@ class StripeAuth:
                   f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ☞ {response}\n"
                   f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ☞ {country}\n"
                   f"𝗕𝗿𝗮𝗻𝗱 ☞ {brand}\n"
-                  f"𝗧𝘆𝗽𝗲 ☞ {card_type}")
+                  f"𝗧𝘆𝗽𝗲 ☞ {card_type}\n"
+                  f"𝗧𝗶𝗺𝗲 ☞ {elapsed}s")
         if any(k in response for k in ["Approved ✅", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
             with open("auth.txt", "a", encoding="utf-8") as f:
                 f.write(output + "\n")
@@ -582,13 +584,14 @@ class BraintreeAuth:
         if "Payment method successfully added." in error_msg:
             error_msg = ""
         if error_msg:
-            output = (f"𝗖𝗮𝗿𝗱 ☞ <code>{fullz}</code>\n"
-                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ☞ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
-                      f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ☞ {error_msg} ❌\n"
-                      f"𝗕𝗿𝗮𝗻𝗱 ☞ {brand}\n"
-                      f"𝗕𝗮𝗻𝗸 ☞ {bank}\n"
-                      f"𝗣𝗿𝗲𝗽𝗮𝗶𝗱 ☞ {prepaid}\n"
-                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ☞ {country}")
+            output = (f"𝗖𝗮𝗿𝗱: » <code>{fullz}</code>\n"
+                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆: » 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
+                      f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲: » {error_msg} ❌\n"
+                      f"𝗕𝗿𝗮𝗻𝗱: » {brand}\n"
+                      f"𝗕𝗮𝗻𝗸: » {bank}\n"
+                      f"𝗣𝗿𝗲𝗽𝗮𝗶𝗱: » {prepaid}\n"
+                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆: » {country}\n"
+                      f"𝗧𝗶𝗺𝗲: » {elapsed}s")
         else:
             output = (f"𝗖𝗮𝗿𝗱 ☞ <code>{fullz}</code>\n"
                       f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ☞ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
@@ -596,7 +599,8 @@ class BraintreeAuth:
                       f"𝗕𝗿𝗮𝗻𝗱 ☞ {brand}\n"
                       f"𝗕𝗮𝗻𝗸 ☞ {bank}\n"
                       f"𝗣𝗿𝗲𝗽𝗮𝗶𝗱 ☞ {prepaid}\n"
-                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ☞ {country}")
+                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ☞ {country}\n"
+                      f"𝗧𝗶𝗺𝗲 ☞ {elapsed}s")
             if any(k in response for k in ["Approved", "CVV INCORRECT", "CVV MATCH", "INSUFFICIENT FUNDS"]):
                 with open("auth.txt", "a") as f:
                     f.write(output + "\n")
