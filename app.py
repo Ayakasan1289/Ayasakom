@@ -715,11 +715,8 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 
 if __name__ == "__main__":
-    TOKEN = os.getenv("TOKEN")  # Ambil token dari environment variable
-    if not TOKEN:
-        print("TOKEN environment variable not set")
-        exit(1)
-    application = ApplicationBuilder().token(TOKEN).build()
+    import sys
+    application = ApplicationBuilder().token("TOKEN").build()
 
     application.add_handler(CommandHandler("sa", StripeAuth.start_stripe))
     application.add_handler(CommandHandler("ba", BraintreeAuth.start_braintree))
