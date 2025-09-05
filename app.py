@@ -373,7 +373,7 @@ class BraintreeAuth:
                 'upgrade-insecure-requests': '1',
                 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             }
-            response = await session.get('https://boltlaundry.com/loginnow/', headers=headers)
+            response = await session.get('https://boltlaundry.com/my-login/', headers=headers)
             login = BraintreeAuth.gets(response.text, '<input type="hidden" name="ihc_login_nonce" value="', '"')
             headers.update({
                 'content-type': 'application/x-www-form-urlencoded',
@@ -864,4 +864,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("BOT STOPPED BY USER")
         sys.exit()
+
 
