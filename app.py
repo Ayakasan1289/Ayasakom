@@ -732,7 +732,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 # ---------------------- CC GENERATOR (/gen) ----------------------
 
-TOKEN_BOT = "8337554074:AAErPz12Rkvx3On1_qH8HhA3asfgPOmlV3s"
+TOKEN_BOT = "8112017304:AAGsJv-F06cajaiSiho7x2SH_SUSdWOC7o0"
 API_URL = "https://drlabapis.onrender.com/api/ccgenerator"
 
 def parse_input(input_text):
