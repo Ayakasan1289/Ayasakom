@@ -1,14 +1,17 @@
-FROM python:3.12-slim
+# Menggunakan image Python resmi versi 3.11 slim sebagai base
+FROM python:3.11-slim
 
+# Set direktori kerja di container
 WORKDIR /app
 
-# Copy dulu requirements.txt, lalu install dependencies
+# Salin requirements.txt ke container
 COPY requirements.txt .
 
+# Install dependencies Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy seluruh kode source bot
+# Salin semua file script ke dalam container
 COPY . .
 
-# Jalankan bot.py (ganti sesuai nama file script Anda)
+# Jalankan bot Python
 CMD ["python", "app.py"]
