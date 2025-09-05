@@ -732,7 +732,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 # ---------------------- CC GENERATOR (/gen) ----------------------
 
-TOKEN_BOT = "8112017304:AAF6h2ipESiCrTl94z5CApog_5ep-KPVglo"
+TOKEN_BOT = "8337554074:AAErPz12Rkvx3On1_qH8HhA3asfgPOmlV3s"
 API_URL = "https://drlabapis.onrender.com/api/ccgenerator"
 
 def parse_input(input_text):
@@ -864,6 +864,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("BOT STOPPED BY USER")
         sys.exit()
-
-
-
