@@ -386,7 +386,7 @@ class BraintreeAuth:
                 'log': 'SiennaMor',
                 'pwd': 'SiennaMoran1209',
             }
-            await session.post('https://boltlaundry.com/loginnow/', headers=headers, data=data)
+            await session.post('https://boltlaundry.com/my-login/', headers=headers, data=data)
             await session.get('https://boltlaundry.com/my-account/', headers=headers)
             await session.get('https://boltlaundry.com/my-account/payment-methods/', headers=headers)
             response = await session.get('https://boltlaundry.com/my-account/add-payment-method/', headers=headers)
@@ -864,3 +864,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("BOT STOPPED BY USER")
         sys.exit()
+
