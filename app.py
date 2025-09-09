@@ -22,7 +22,7 @@ from telegram.ext import (
 
 OWNER_ADMIN_ID = 7519839885
 ADMIN_ID_FILE = "admin_ids.txt"
-BOT_TOKEN = "8112017304:AAEpGTDaaDy57lxQuikwUEGoTeL0mvz93OM"
+BOT_TOKEN = "8443289620:AAGyJZ9vLkJLr9maxLV8VtRgigEK31DY0go"
 user_mode = "stripe"
 
 def get_admin_chat_ids() -> set[int]:
@@ -415,7 +415,18 @@ class StripeAuth:
     @staticmethod
     async def multi_checking(fullz: str) -> str:
         start = time.time()
+        # Perbaiki penggunaan proxy dengan httpx.AsyncClient
+        proxy_list = load_proxies_from_file()
+        proxy = random.choice(proxy_list) if proxy_list else None
+        
         async with httpx.AsyncClient(timeout=40) as session:
+            if proxy:
+                # Set proxy untuk sesi
+                session.proxies = {
+                    "http://": proxy,
+                    "https://": proxy
+                }
+            
             result, country, brand, card_type = await StripeAuth.create_payment_method(fullz, session)
             response = await StripeAuth.charge_resp(result)
         elapsed = round(time.time() - start, 2)
@@ -424,7 +435,7 @@ class StripeAuth:
             if "error" in json_resp:
                 error_message = unescape(json_resp["error"].get("message","")).strip()
                 output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
-                          f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+                          f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗵\n"
                           f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
                           f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
                           f"𝗧𝘆𝗽𝗲 ➯ <b>{card_type}</b>\n"
@@ -433,7 +444,7 @@ class StripeAuth:
         except:
             pass
         output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
-                  f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
+                  f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗵\n"
                   f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
                   f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
                   f"𝗧𝘆𝗽𝗲 ➯ <b>{card_type}</b>\n"
@@ -653,7 +664,14 @@ class StripeCharge:
             error_msg = "Expiration date invalid ❌" if "Expiration" in err else err + " ❌"
             return f"{card_info}𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {error_msg}"
         
-        async with httpx.AsyncClient(proxies=proxy, timeout=40) as session:
+        async with httpx.AsyncClient(timeout=40) as session:
+            if proxy:
+                # Set proxy untuk sesi
+                session.proxies = {
+                    "http://": proxy,
+                    "https://": proxy
+                }
+            
             result, stripe_country, stripe_brand, stripe_card_type = await StripeCharge.create_payment_method(x, session)
             
             if api_info:
@@ -1030,14 +1048,14 @@ class BraintreeAuth:
             error_msg = ""
         if error_msg:
             output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
-                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
+                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗵\n"
                       f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {error_msg} ❌\n"
                       f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
                       f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
                       f"𝗕𝗮𝗻𝗸 ➯ <b>{bank}</b>\n")
         else:
             output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
-                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
+                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗵\n"
                       f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {response}\n"
                       f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
                       f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
