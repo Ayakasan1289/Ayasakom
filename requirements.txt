@@ -1,4 +1,5 @@
-httpx>=0.24.1
-requests>=2.31.0
-python-telegram-bot>=20.3
-beautifulsoup4>=4.12.2
+python-telegram-bot==21.10
+httpx==0.24.1
+beautifulsoup4==4.12.2
+requests==2.31.0
+lxml==4.9.3
