@@ -21,7 +21,7 @@ from telegram.ext import (
 )
 OWNER_ADMIN_ID = 7519839885
 ADMIN_ID_FILE = "admin_ids.txt"
-BOT_TOKEN = "8112017304:AAEpGTDaaDy57lxQuikwUEGoTeL0mvz93OM"
+BOT_TOKEN = "8112017304:AAEI92Ren0UUysK-QTaSaNLBzvvL-wjB3QU"
 ALLOWED_GROUP_IDS = [-1002984425456]
 user_mode = "stripe"
 def get_admin_chat_ids() -> set[int]:
@@ -1480,3 +1480,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("BOT STOPPED BY USER")
         sys.exit()
+
