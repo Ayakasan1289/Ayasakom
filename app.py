@@ -450,15 +450,11 @@ class StripeAuth:
                 "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
     
-            await asyncio.sleep(10)
-            await msg.delete()
         else:
             msg = await update.message.reply_text(
                 "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
     
-            await asyncio.sleep(10)
-            await msg.delete()
 class StripeCharge:
     @staticmethod
     async def create_payment_method(fullz, session):
@@ -761,15 +757,11 @@ class StripeCharge:
                 "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗖𝗡\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
     
-            await asyncio.sleep(10)
-            await msg.delete()
         else:
             msg = await update.message.reply_text(
                 "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗖𝗡\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
     
-            await asyncio.sleep(10)
-            await msg.delete()
 class BraintreeAuth:
     @staticmethod
     def gets(s: str, start: str, end: str) -> str | None:
@@ -1071,15 +1063,11 @@ class BraintreeAuth:
                 "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
     
-            await asyncio.sleep(10)
-            await msg.delete()
         else:
             msg = await update.message.reply_text(
                 "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
     
-            await asyncio.sleep(10)
-            await msg.delete()
 async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     
@@ -1372,8 +1360,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             reply_markup=reply_markup
         )
 
-        await asyncio.sleep(10)
-        await msg.delete()
     elif query.data == 'ba':
         active_mode_per_chat[chat_id] = 'braintree'
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
@@ -1383,8 +1369,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             reply_markup=reply_markup
         )
 
-        await asyncio.sleep(10)
-        await msg.delete()
     elif query.data == 'sc':
         active_mode_per_chat[chat_id] = 'stripe_charge'
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
@@ -1394,8 +1378,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             reply_markup=reply_markup
         )
 
-        await asyncio.sleep(10)
-        await msg.delete()
     elif query.data == 'gen':
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1405,8 +1387,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             reply_markup=reply_markup
         )
 
-        await asyncio.sleep(10)
-        await msg.delete()
     elif query.data == 'clean':
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1416,8 +1396,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             reply_markup=reply_markup
         )
 
-        await asyncio.sleep(10)
-        await msg.delete()
     elif query.data == 'admin':
         # Hanya admin yang bisa mengakses ini
         if chat_id not in admin_chat_ids:
@@ -1435,8 +1413,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             reply_markup=reply_markup
         )
 
-        await asyncio.sleep(10)
-        await msg.delete()
     elif query.data == 'help':
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1449,8 +1425,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         msg = await query.edit_message_text(help_text, reply_markup=reply_markup)
 
-        await asyncio.sleep(10)
-        await msg.delete()
     elif query.data == 'addadmin':
         await add_admin_callback(update, context)
     elif query.data == 'deladmin':
@@ -1463,8 +1437,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             parse_mode="Markdown",
             disable_web_page_preview=True
         )
-        await asyncio.sleep(10)
-        await msg.delete()
+
 async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     text = update.message.text.strip()
@@ -1507,4 +1480,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("BOT STOPPED BY USER")
         sys.exit()
-
