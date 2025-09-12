@@ -19,26 +19,22 @@ from telegram.ext import (
     filters,
     ContextTypes,
 )
-
 OWNER_ADMIN_ID = 7519839885
 ADMIN_ID_FILE = "admin_ids.txt"
-BOT_TOKEN = "8112017304:AAEpGTDaaDy57lxQuikwUEGoTeL0mvz93OM"
+BOT_TOKEN = "8337554074:AAErPz12Rkvx3On1_qH8HhA3asfgPOmlV3s"
+ALLOWED_GROUP_IDS = [-1002984425456]
 user_mode = "stripe"
-
 def get_admin_chat_ids() -> set[int]:
     if os.path.exists(ADMIN_ID_FILE):
         with open(ADMIN_ID_FILE, "r") as f:
             return {int(line.strip()) for line in f if line.strip().isdigit()}
     return set()
-
 def save_admin_chat_ids(admins: set[int]) -> None:
     with open(ADMIN_ID_FILE, "w") as f:
         for aid in admins:
             f.write(f"{aid}\n")
-
 admin_chat_ids = get_admin_chat_ids()
 active_mode_per_chat = {}
-
 def gets(s: str, start: str, end: str) -> str | None:
     try:
         start_index = s.index(start) + len(start)
@@ -46,7 +42,6 @@ def gets(s: str, start: str, end: str) -> str | None:
         return s[start_index:end_index]
     except ValueError:
         return None
-
 def validate_expiry_date(mes, ano):
     mes = mes.zfill(2)
     if len(ano) == 4:
@@ -65,7 +60,6 @@ def validate_expiry_date(mes, ano):
     if expiry_year == current_year and expiry_month < current_month:
         return False, "Expiration date invalid"
     return True, ""
-
 def is_valid_credit_card_number(number: str) -> bool:
     number = number.replace(" ", "").replace("-", "")
     if not number.isdigit():
@@ -80,7 +74,6 @@ def is_valid_credit_card_number(number: str) -> bool:
                 n = n - 9
         total += n
     return total % 10 == 0
-
 def parse_fullz(fullz_raw):
     raws = re.split(r"\s+", fullz_raw.strip())
     cleaned = []
@@ -98,7 +91,6 @@ def parse_fullz(fullz_raw):
         full = f"{cc}|{mes}|{ano}|{cvv}"
         cleaned.append(full)
     return cleaned
-
 def load_proxies_from_file(file_path="proxy.txt"):
     proxies = []
     try:
@@ -117,7 +109,6 @@ def load_proxies_from_file(file_path="proxy.txt"):
     except FileNotFoundError:
         proxies = []
     return proxies
-
 def save_proxies_to_file(proxies, file_path="proxy.txt"):
     lines = []
     for p in proxies:
@@ -132,7 +123,6 @@ def save_proxies_to_file(proxies, file_path="proxy.txt"):
         lines.append(line)
     with open(file_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
-
 def get_card_info_from_api(bin_number):
     try:
         url = f"https://drlabapis.onrender.com/api/bin?bin={bin_number}"
@@ -148,7 +138,6 @@ def get_card_info_from_api(bin_number):
     except Exception as e:
         print(f"API call failed: {e}")
     return None
-
 # Helper functions to determine card brand and type
 def get_card_brand(card_number):
     """Determine card brand from card number"""
@@ -179,7 +168,6 @@ def get_card_brand(card_number):
         return "UNIONPAY"
     else:
         return "Unknown"
-
 def get_card_type(card_number):
     """Determine card type from card number"""
     card_number = re.sub(r'\D', '', card_number)
@@ -194,7 +182,6 @@ def get_card_type(card_number):
         return "CREDIT"
     else:
         return "Unknown"
-
 # --- class Stripe, Braintree, dan fungsi utilitas ---
 class StripeAuth:
     @staticmethod
@@ -205,7 +192,7 @@ class StripeAuth:
             return s[start_index:end_index]
         except ValueError:
             return None
-
+    
     @staticmethod
     async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple[str, str, str, str]:
         try:
@@ -363,7 +350,7 @@ class StripeAuth:
             return response.text, country, brand, card_type
         except Exception as e:
             return f"EXCEPTION: {str(e)}", country, brand, card_type
-
+    
     @staticmethod
     async def charge_resp(result):
         try:
@@ -411,7 +398,7 @@ class StripeAuth:
                 return result + "❌"
         except Exception as e:
             return f"{str(e)} ❌"
-
+    
     @staticmethod
     async def multi_checking(fullz: str) -> str:
         start = time.time()
@@ -453,20 +440,25 @@ class StripeAuth:
             with open("auth.txt", "a", encoding="utf-8") as f:
                 f.write(output + "\n")
         return output
-
+    
     @staticmethod
     async def start_stripe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         chat_id = update.effective_chat.id
         active_mode_per_chat[chat_id] = 'stripe'
         if hasattr(update, 'callback_query'):
-            await update.callback_query.edit_message_text(
+            msg = await update.callback_query.edit_message_text(
                 "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
+    
+            await asyncio.sleep(10)
+            await msg.delete()
         else:
-            await update.message.reply_text(
+            msg = await update.message.reply_text(
                 "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
-
+    
+            await asyncio.sleep(10)
+            await msg.delete()
 class StripeCharge:
     @staticmethod
     async def create_payment_method(fullz, session):
@@ -621,7 +613,7 @@ class StripeCharge:
             return response.text, country, brand, card_type
         except Exception as e:
             return str(e), country, brand, card_type
-
+    
     @staticmethod
     async def multi_checking(x, proxy=None):
         cc, mes, ano, cvv = x.split("|")
@@ -643,7 +635,7 @@ class StripeCharge:
         if not is_valid_credit_card_number(cc):
             card_info = (
                 f"𝗖𝗮𝗿𝗱 ➯ <code>{x}</code>\n"
-                f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\n"
+                f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗖𝗡\n"
                 f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
                 f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
                 f"𝗧𝘆𝗽𝗲 ➯ <b>{card_type}</b>\n"
@@ -656,7 +648,7 @@ class StripeCharge:
         if not valid:
             card_info = (
                 f"𝗖𝗮𝗿𝗱 ➯ <code>{x}</code>\n"
-                f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\n"
+                f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗖𝗡\n"
                 f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
                 f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
                 f"𝗧𝘆𝗽𝗲 ➯ <b>{card_type}</b>\n"
@@ -691,7 +683,7 @@ class StripeCharge:
             
             card_info = (
                 f"𝗖𝗮𝗿𝗱 ➯ <code>{x}</code>\n"
-                f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\n"
+                f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗖𝗡\n"
                 f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
                 f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
                 f"𝗧𝘆𝗽𝗲 ➯ <b>{card_type}</b>\n"
@@ -759,20 +751,25 @@ class StripeCharge:
                 return f"{card_info}𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {response}"
             else:
                 return f"{card_info}𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ Charged $35"
-
+    
     @staticmethod
     async def start_stripe_charge(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         chat_id = update.effective_chat.id
         active_mode_per_chat[chat_id] = 'stripe_charge'
         if hasattr(update, 'callback_query'):
-            await update.callback_query.edit_message_text(
-                "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\nSEND CARDS ➯ CC|MM|YY|CVV"
+            msg = await update.callback_query.edit_message_text(
+                "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗖𝗡\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
+    
+            await asyncio.sleep(10)
+            await msg.delete()
         else:
-            await update.message.reply_text(
-                "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\nSEND CARDS ➯ CC|MM|YY|CVV"
+            msg = await update.message.reply_text(
+                "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗖𝗡\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
-
+    
+            await asyncio.sleep(10)
+            await msg.delete()
 class BraintreeAuth:
     @staticmethod
     def gets(s: str, start: str, end: str) -> str | None:
@@ -782,7 +779,7 @@ class BraintreeAuth:
             return s[start_index:end_index]
         except ValueError:
             return None
-
+    
     @staticmethod
     def extract_braintree_token(response_text):
         pattern = r'wc_braintree_client_token\s*=\s*\["([^"]+)"\]'
@@ -797,7 +794,7 @@ class BraintreeAuth:
         except Exception as e:
             print(f"Error decoding or parsing JSON token: {e}")
             return None
-
+    
     @staticmethod
     async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple[str, str, str, str, str]:
         try:
@@ -946,7 +943,7 @@ class BraintreeAuth:
             return response.text, country, brand, bank, prepaid
         except Exception as e:
             return f"EXCEPTION: {str(e)}", '', '', '', ''
-
+    
     @staticmethod
     async def charge_resp(result):
         error_message = ""
@@ -1022,7 +1019,7 @@ class BraintreeAuth:
                 return result + "❌"
         except Exception as e:
             return f"{str(e)} ❌"
-
+    
     @staticmethod
     async def multi_checking(fullz: str) -> str:
         start = time.time()
@@ -1064,25 +1061,33 @@ class BraintreeAuth:
                 with open("auth.txt", "a") as f:
                     f.write(output + "\n")
         return output
-
+    
     @staticmethod
     async def start_braintree(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         chat_id = update.effective_chat.id
         active_mode_per_chat[chat_id] = 'braintree'
         if hasattr(update, 'callback_query'):
-            await update.callback_query.edit_message_text(
+            msg = await update.callback_query.edit_message_text(
                 "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
+    
+            await asyncio.sleep(10)
+            await msg.delete()
         else:
-            await update.message.reply_text(
+            msg = await update.message.reply_text(
                 "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
-
+    
+            await asyncio.sleep(10)
+            await msg.delete()
 async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
-    if chat_id not in admin_chat_ids:
+    
+    # Periksa apakah chat_id adalah pengguna atau grup yang diizinkan
+    if chat_id not in admin_chat_ids and chat_id not in ALLOWED_GROUP_IDS:
         await update.message.reply_text("YOU ARE NOT AUTHORIZED TO USE THIS BOT ❌")
         return
+    
     mode = active_mode_per_chat.get(chat_id, None)
     if mode is None:
         await update.message.reply_text("PLEASE SELECT AUTH METHOD FIRST WITH /sa or /ba or /sc")
@@ -1120,9 +1125,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await msg.delete()
     except Exception as e:
         await update.message.reply_text(f"ERROR: {str(e)}")
-
 API_URL = "https://drlabapis.onrender.com/api/ccgenerator"
-
 def parse_input(input_text):
     input_text = input_text.strip()
     count = 10
@@ -1132,7 +1135,6 @@ def parse_input(input_text):
         input_text = " ".join(parts_space[:-1])
     bin_input = input_text
     return bin_input, count
-
 async def ccgen_advanced(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
     if not args:
@@ -1147,7 +1149,7 @@ async def ccgen_advanced(update: Update, context: ContextTypes.DEFAULT_TYPE):
         r = requests.get(API_URL, params=params)
         if r.status_code == 200:
             raw_ccs = r.text.strip().split('\n')
-            message_lines = ["🃏 CARDS GENERATOR 🃏\n"]
+            message_lines = ["🃏 𝗖𝗔𝗥𝗗𝗦 𝗚𝗘𝗡𝗘𝗥𝗔𝗧𝗢𝗥 🃏\n"]
             message_lines.append("```")
             message_lines.extend(raw_ccs)
             message_lines.append("```")
@@ -1159,10 +1161,8 @@ async def ccgen_advanced(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
     except Exception as e:
         await update.message.reply_text(f"⚠️ Terjadi kesalahan: {str(e)}")
-
 async def gen_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ccgen_advanced(update, context)
-
 def extract_cc_from_line(line):
     pattern = re.compile(
         r"(\d{15,16})\|"
@@ -1171,7 +1171,6 @@ def extract_cc_from_line(line):
         r"(\d{3,4})"
     )
     return [match.group(0) for match in pattern.finditer(line)]
-
 def extract_cc_from_file(input_file, output_file):
     results = []
     with open(input_file, "r", encoding="utf-8") as f:
@@ -1182,7 +1181,6 @@ def extract_cc_from_file(input_file, output_file):
         for item in results:
             f.write(item + "\n")
     return len(results)
-
 async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     file = update.message.document
     os.makedirs("downloads", exist_ok=True)
@@ -1197,7 +1195,6 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text(f"{count} CARDS HAVE BEEN SUCCESSFULLY EXTRACTED AND SENT")
     else:
         await update.message.reply_text("NO MATCHING CARDS DATA FOUND")
-
 async def edit_to_menu(update: Update, text: str, reply_markup: InlineKeyboardMarkup) -> None:
     """Fungsi helper untuk mengedit pesan yang aktif menjadi menu baru"""
     try:
@@ -1223,7 +1220,6 @@ async def edit_to_menu(update: Update, text: str, reply_markup: InlineKeyboardMa
                 text=text,
                 reply_markup=reply_markup
             )
-
 async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
         [InlineKeyboardButton("ADD ADMIN", callback_data='addadmin')],
@@ -1234,7 +1230,6 @@ async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     text = "𝗔𝗗𝗠𝗜𝗡 𝗠𝗘𝗡𝗨\n\n"
     
     await edit_to_menu(update, text, reply_markup)
-
 async def add_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -1258,7 +1253,6 @@ async def add_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
     
     context.user_data['awaiting_admin_id'] = True
-
 async def del_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -1282,7 +1276,6 @@ async def del_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
     
     context.user_data['awaiting_admin_removal'] = True
-
 async def handle_admin_id_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     
@@ -1345,100 +1338,133 @@ async def handle_admin_id_input(update: Update, context: ContextTypes.DEFAULT_TY
         
         del context.user_data['awaiting_admin_removal']
         await show_admin_menu(update, context)
-
 async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await show_admin_menu(update, context)
-
 # --- INTERACTIVE MENU ---
 def build_menu_keyboard():
     keyboard = [
         [InlineKeyboardButton("STRIPE AUTH", callback_data='sa'),
          InlineKeyboardButton("BRAINTREE AUTH", callback_data='ba')],
-        [InlineKeyboardButton("STRIPE CHARGE", callback_data='sc'),
+        [InlineKeyboardButton("STRIPE CCN", callback_data='sc'),
          InlineKeyboardButton("CC GENERATOR", callback_data='gen')],
-        [InlineKeyboardButton("CC CLEANER", callback_data='clean'),
-         InlineKeyboardButton("ADMIN", callback_data='admin')],
+        [InlineKeyboardButton("CC CLEANER", callback_data='clean')],
         [InlineKeyboardButton("HELP", callback_data='help')]
     ]
+    
+    # Tambahkan tombol admin hanya jika pengguna adalah admin
+    chat_id = update.effective_chat.id if 'update' in locals() else None
+    if chat_id and chat_id in admin_chat_ids:
+        keyboard.insert(2, [InlineKeyboardButton("ADMIN", callback_data='admin')])
+    
     return InlineKeyboardMarkup(keyboard)
-
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
     
-    chat_id = query.from_user.id
+    chat_id = update.effective_chat.id
     
     if query.data == 'sa':
         active_mode_per_chat[chat_id] = 'stripe'
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
+        msg = await query.edit_message_text(
             "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV",
             reply_markup=reply_markup
         )
+
+        await asyncio.sleep(10)
+        await msg.delete()
     elif query.data == 'ba':
         active_mode_per_chat[chat_id] = 'braintree'
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
+        msg = await query.edit_message_text(
             "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV",
             reply_markup=reply_markup
         )
+
+        await asyncio.sleep(10)
+        await msg.delete()
     elif query.data == 'sc':
         active_mode_per_chat[chat_id] = 'stripe_charge'
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
-            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘\nSEND CARDS ➯ CC|MM|YY|CVV",
+        msg = await query.edit_message_text(
+            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗖𝗡\nSEND CARDS ➯ CC|MM|YY|CVV",
             reply_markup=reply_markup
         )
+
+        await asyncio.sleep(10)
+        await msg.delete()
     elif query.data == 'gen':
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
-            "🃏 CARDS GENERATOR 🃏\n\n"
+        msg = await query.edit_message_text(
+            "🃏 𝗖𝗔𝗥𝗗𝗦 𝗚𝗘𝗡𝗘𝗥𝗔𝗧𝗢𝗥 🃏\n\n"
             "/gen 550230 5",
             reply_markup=reply_markup
         )
+
+        await asyncio.sleep(10)
+        await msg.delete()
     elif query.data == 'clean':
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
+        msg = await query.edit_message_text(
             "𝗖𝗖 𝗖𝗟𝗘𝗔𝗡𝗘𝗥\n\n"
             "SEND A FILE TO EXTRACT CC",
             reply_markup=reply_markup
         )
+
+        await asyncio.sleep(10)
+        await msg.delete()
     elif query.data == 'admin':
+        # Hanya admin yang bisa mengakses ini
+        if chat_id not in admin_chat_ids:
+            await query.edit_message_text("YOU ARE NOT AUTHORIZED TO ACCESS THIS MENU ❌")
+            return
+            
         keyboard = [
             [InlineKeyboardButton("ADD ADMIN", callback_data='addadmin')],
             [InlineKeyboardButton("REMOVE ADMIN", callback_data='deladmin')],
             [InlineKeyboardButton("BACK", callback_data='back')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
+        msg = await query.edit_message_text(
             "𝗔𝗗𝗠𝗜𝗡 𝗠𝗘𝗡𝗨\n\n",
             reply_markup=reply_markup
         )
+
+        await asyncio.sleep(10)
+        await msg.delete()
     elif query.data == 'help':
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         help_text = (
             "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛 ➯ CHECK STRIPE\n"
             "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛 ➯ CHECK BRAINTREE\n"
-            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗛𝗔𝗥𝗚𝗘 ➯ CHARGE STRIPE\n"
+            "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗖𝗡 ➯ STRIPE CCN $35\n"
             "𝗖𝗖 𝗚𝗘𝗡𝗘𝗥𝗔𝗧𝗢𝗥 ➯ GENERATE CARDS\n"
             "𝗖𝗖 𝗖𝗟𝗘𝗔𝗡𝗘𝗥 ➯ EXTRACT CARDS\n"
-            "𝗔𝗗𝗠𝗜𝗡 ➯ ADD/REMOVE ADMIN\n"
         )
-        await query.edit_message_text(help_text, reply_markup=reply_markup)
+        msg = await query.edit_message_text(help_text, reply_markup=reply_markup)
+
+        await asyncio.sleep(10)
+        await msg.delete()
     elif query.data == 'addadmin':
         await add_admin_callback(update, context)
     elif query.data == 'deladmin':
         await del_admin_callback(update, context)
     elif query.data == 'back':
         keyboard = build_menu_keyboard()
-        await query.edit_message_text("𝗣𝗔𝗥𝗔𝗘𝗟 𝗖𝗛𝗘𝗖𝗞𝗘𝗥\n\n", reply_markup=keyboard)
-
+        msg = await query.edit_message_text(
+            "By [Parael](https://t.me/Parael1101)",
+            reply_markup=keyboard,
+            parse_mode="Markdown",
+            disable_web_page_preview=True
+        )
+        await asyncio.sleep(10)
+        await msg.delete()
 async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     text = update.message.text.strip()
@@ -1452,17 +1478,14 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
     
     await handle_cc_message(update, context)
-
-async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.effective_user.id != OWNER_ADMIN_ID:
-        return
-    
+async def checker_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = build_menu_keyboard()
     await update.message.reply_text(
-        "𝗣𝗔𝗥𝗔𝗘𝗟 𝗖𝗛𝗘𝗖𝗞𝗘𝗥\n\n",
-        reply_markup=keyboard
-   )
-
+        "By [Parael](https://t.me/Parael1101)",
+        reply_markup=keyboard,
+        parse_mode="Markdown",
+        disable_web_page_preview=True
+    )
 if __name__ == "__main__":
     import sys
     proxy_list = load_proxies_from_file()
@@ -1473,10 +1496,10 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("sc", StripeCharge.start_stripe_charge))
     application.add_handler(CommandHandler("gen", ccgen_advanced))
     application.add_handler(CommandHandler("admin", cmd_admin))
+    application.add_handler(CommandHandler("PARAEL", checker_command))  # Ganti /start dengan /checker
     application.add_handler(MessageHandler(filters.Document.ALL, handle_file))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text_message))
     application.add_handler(CallbackQueryHandler(button_callback))
-    application.add_handler(CommandHandler("start", start_handler))
     
     print("PARAEL CHECKER BOT RUNNING 🔥")
     try:
@@ -1484,5 +1507,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("BOT STOPPED BY USER")
         sys.exit()
-
-
